@@ -1,121 +1,169 @@
-import { useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from './assets/vite.svg';
-import heroImg from './assets/hero.png';
+import { type Transaction } from '@savent/contracts';
+import { useEffect, useState } from 'react';
+
+import {
+  createTransaction,
+  fetchTransactionOptions,
+  fetchTransactions,
+} from './api/transactions';
 import './App.css';
+import { TransactionForm } from './components/TransactionForm';
+import { TransactionList } from './components/TransactionList';
+
+type Options = Awaited<ReturnType<typeof fetchTransactionOptions>>;
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [options, setOptions] = useState<Options>({
+    accounts: [],
+    categories: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadPage() {
+      try {
+        const [transactionData, optionData] = await Promise.all([
+          fetchTransactions(controller.signal),
+          fetchTransactionOptions(controller.signal),
+        ]);
+
+        setTransactions(transactionData);
+        setOptions(optionData);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : 'Savent could not load your transactions.',
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadPage();
+    return () => controller.abort();
+  }, []);
+
+  async function handleCreate(input: Parameters<typeof createTransaction>[0]) {
+    const transaction = await createTransaction(input);
+    setTransactions((current) => [transaction, ...current]);
+  }
+
+  const totalIncome = transactions
+    .filter((transaction) => transaction.type === 'income')
+    .reduce((total, transaction) => total + Number(transaction.amount), 0);
+  const totalExpenses = transactions
+    .filter((transaction) => transaction.type === 'expense')
+    .reduce((total, transaction) => total + Number(transaction.amount), 0);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-shell">
+      <header className="topbar">
+        <a className="brand" href="/" aria-label="Savent home">
+          <span className="brand-mark">S</span>
+          <span>Savent</span>
+        </a>
+        <nav aria-label="Primary navigation">
+          <a href="#overview">Overview</a>
+          <a className="active" href="#transactions">
+            Transactions
+          </a>
+        </nav>
+        <div className="profile">
+          <span className="avatar">AN</span>
+          <span>
+            <strong>Ava Nguyen</strong>
+            <small>Demo workspace</small>
+          </span>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
+      <main>
+        <section className="page-heading" id="overview">
+          <div>
+            <p className="eyebrow">Money activity</p>
+            <h1>Transactions</h1>
+            <p>Track every dollar moving in and out of your accounts.</p>
+          </div>
+          <div className="summary-cards" aria-label="Transaction summary">
+            <article>
+              <span>Income</span>
+              <strong className="positive">
+                +
+                {totalIncome.toLocaleString('en-AU', {
+                  style: 'currency',
+                  currency: 'AUD',
+                })}
+              </strong>
+            </article>
+            <article>
+              <span>Expenses</span>
+              <strong>
+                -
+                {totalExpenses.toLocaleString('en-AU', {
+                  style: 'currency',
+                  currency: 'AUD',
+                })}
+              </strong>
+            </article>
+          </div>
+        </section>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {loadError ? (
+          <section className="load-error" role="alert">
+            <strong>We couldn’t load your transactions.</strong>
+            <span>{loadError}</span>
+          </section>
+        ) : null}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        <div className="content-grid" id="transactions">
+          <section className="panel transaction-panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Activity</p>
+                <h2>Recent transactions</h2>
+              </div>
+              <span className="record-count">
+                {transactions.length}{' '}
+                {transactions.length === 1 ? 'record' : 'records'}
+              </span>
+            </div>
+
+            {isLoading ? (
+              <div className="loading-state" aria-live="polite">
+                <span className="spinner" aria-hidden="true" />
+                Loading transactions…
+              </div>
+            ) : (
+              <TransactionList transactions={transactions} />
+            )}
+          </section>
+
+          <aside className="panel form-panel">
+            {isLoading ? (
+              <div className="loading-state" aria-live="polite">
+                <span className="spinner" aria-hidden="true" />
+                Preparing transaction form…
+              </div>
+            ) : (
+              <TransactionForm
+                accounts={options.accounts}
+                categories={options.categories}
+                onSubmit={handleCreate}
+              />
+            )}
+          </aside>
+        </div>
+      </main>
+    </div>
   );
 }
 
