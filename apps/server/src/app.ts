@@ -1,3 +1,4 @@
+import { healthResponseSchema } from '@savent/contracts';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
@@ -16,11 +17,13 @@ app.use(
 app.use(express.json());
 
 app.get('/api/health', (_request, response) => {
-  response.status(200).json({
+  const health = healthResponseSchema.parse({
     status: 'ok',
     service: 'savent-api',
     timestamp: new Date().toISOString(),
   });
+
+  response.status(200).json(health);
 });
 
 app.use((_request, response) => {
