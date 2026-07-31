@@ -67,3 +67,6 @@ jobs:
 
       - name: Build
         run: npm run build
+      
+      - name: Seed test database
+        run: npm run db:seed
