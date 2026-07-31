@@ -50,8 +50,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma Client
+        run: npm run db:generate
+
       - name: Apply database migrations
         run: npm run db:migrate:deploy
+
+      - name: Seed test database
+        run: npm run db:seed
 
       - name: Check formatting
         run: npm run format:check

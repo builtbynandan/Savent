@@ -148,6 +148,19 @@ Check PostgreSQL connectivity:
 curl http://localhost:3000/api/health/database
 ```
 
+### Transaction API
+
+Cycle 1 provides the first complete product workflow:
+
+| Method | Endpoint                    | Purpose                                   |
+| ------ | --------------------------- | ----------------------------------------- |
+| `GET`  | `/api/transactions`         | List the demo user's transactions         |
+| `GET`  | `/api/transactions/options` | List accounts and categories for the form |
+| `POST` | `/api/transactions`         | Validate and create an income or expense  |
+
+The React transaction screen consumes these endpoints and shares its request
+and response schemas with the API through `@savent/contracts`.
+
 Stop PostgreSQL when you are finished:
 
 ```bash
@@ -186,7 +199,7 @@ Run these commands from the repository root:
 - [x] Add continuous integration
 - [x] Add automated contract and API tests
 - [x] Add formatting, linting, environment validation, and contributor tooling
-- [ ] Build transaction creation and listing end to end
+- [x] Build transaction creation and listing end to end
 - [ ] Add authentication and user data isolation
 - [ ] Build budgets, dashboard summaries, and reports
 - [ ] Add production deployment and monitoring

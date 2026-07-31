@@ -30,11 +30,30 @@ describe('transaction contracts', () => {
     ).toThrow();
   });
 
+  it('rejects zero-value transactions', () => {
+    expect(() =>
+      createTransactionSchema.parse({
+        ...transaction,
+        amount: '0',
+      }),
+    ).toThrow();
+  });
+
   it('rejects lowercase currency codes', () => {
     expect(() =>
       createTransactionSchema.parse({
         ...transaction,
         currency: 'aud',
+      }),
+    ).toThrow();
+  });
+
+  it('requires a destination account for transfers', () => {
+    expect(() =>
+      createTransactionSchema.parse({
+        ...transaction,
+        type: 'transfer',
+        categoryId: null,
       }),
     ).toThrow();
   });
