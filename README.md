@@ -39,7 +39,7 @@ clear dashboards and reports.
 - Zod
 - Helmet
 
-### Planned data layer
+### Data
 
 - PostgreSQL
 - Prisma ORM
@@ -54,6 +54,7 @@ Savent/
 ├── apps/
 │   ├── client/              # React and Vite frontend
 │   └── server/              # Node.js and Express REST API
+│       ├── prisma/           # Schema, migrations, and seed data
 │       ├── src/
 │       │   ├── app.ts       # Express application and middleware
 │       │   └── server.ts    # API process entry point
@@ -100,6 +101,20 @@ The default development configuration is:
 ```dotenv
 PORT=3000
 CLIENT_URL=http://localhost:5173
+DATABASE_URL=postgresql://savent:savent@localhost:5432/savent?schema=public
+```
+
+Start PostgreSQL:
+
+```bash
+npm run db:up
+```
+
+Apply migrations and load the development data:
+
+```bash
+npm run db:migrate
+npm run db:seed
 ```
 
 ### Run the client
@@ -137,6 +152,18 @@ Example response:
 }
 ```
 
+Check PostgreSQL connectivity:
+
+```bash
+curl http://localhost:3000/api/health/database
+```
+
+Stop PostgreSQL when you are finished:
+
+```bash
+npm run db:down
+```
+
 ## Available commands
 
 Run these commands from the repository root:
@@ -148,16 +175,23 @@ Run these commands from the repository root:
 | `npm run typecheck` | Type-check workspaces that provide a type-check script |
 | `npm run build` | Build all workspaces |
 | `npm run lint --workspace=@savent/client` | Lint the React client |
+| `npm run db:up` | Start PostgreSQL with Docker Compose |
+| `npm run db:down` | Stop PostgreSQL |
+| `npm run db:generate` | Generate the Prisma Client |
+| `npm run db:migrate` | Create and apply development migrations |
+| `npm run db:seed` | Load deterministic demo data |
+| `npm run db:studio` | Open Prisma Studio |
 
 ## Development roadmap
 
-1. Establish the React and Express workspace foundation
-2. Add shared Zod API contracts
-3. Configure PostgreSQL and Prisma
-4. Build transaction creation and listing end to end
-5. Add authentication and user data isolation
-6. Build budgets, dashboard summaries, and reports
-7. Add automated tests, continuous integration, and deployment
+- [x] Establish the React and Express workspace foundation
+- [x] Add shared Zod API contracts
+- [x] Configure PostgreSQL and Prisma
+- [x] Add continuous integration
+- [ ] Build transaction creation and listing end to end
+- [ ] Add authentication and user data isolation
+- [ ] Build budgets, dashboard summaries, and reports
+- [ ] Add automated tests and deployment
 
 ## Contributing
 

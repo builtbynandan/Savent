@@ -6,6 +6,7 @@ dist/
 build/
 coverage/
 *.tsbuildinfo
+/apps/server/src/generated/prisma/
 
 # Environment variables and secrets
 .env

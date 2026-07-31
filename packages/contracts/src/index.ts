@@ -1,5 +1,9 @@
 export {
+  databaseHealthErrorSchema,
+  databaseHealthResponseSchema,
   healthResponseSchema,
+  type DatabaseHealthError,
+  type DatabaseHealthResponse,
   type HealthResponse,
 } from './health.js';
 

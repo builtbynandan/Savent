@@ -1,0 +1,106 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AccountType {
+  CASH
+  CHECKING
+  SAVINGS
+  CREDIT
+  INVESTMENT
+  OTHER
+}
+
+enum CategoryKind {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  email        String        @unique @db.VarChar(320)
+  name         String        @db.VarChar(120)
+  passwordHash String?       @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  accounts     Account[]
+  categories   Category[]
+  transactions Transaction[]
+
+  @@map("users")
+}
+
+model Account {
+  id                      String        @id @default(uuid()) @db.Uuid
+  userId                  String        @map("user_id") @db.Uuid
+  name                    String        @db.VarChar(80)
+  type                    AccountType
+  currency                String        @default("AUD") @db.Char(3)
+  openingBalance          Decimal       @default(0) @map("opening_balance") @db.Decimal(14, 2)
+  isArchived              Boolean       @default(false) @map("is_archived")
+  createdAt               DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceTransactions      Transaction[] @relation("SourceAccount")
+  destinationTransactions Transaction[] @relation("DestinationAccount")
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Category {
+  id           String        @id @default(uuid()) @db.Uuid
+  userId       String        @map("user_id") @db.Uuid
+  name         String        @db.VarChar(80)
+  kind         CategoryKind
+  color        String?       @db.VarChar(7)
+  icon         String?       @db.VarChar(40)
+  isSystem     Boolean       @default(false) @map("is_system")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([userId, name, kind])
+  @@index([userId, kind])
+  @@map("categories")
+}
+
+model Transaction {
+  id                   String          @id @default(uuid()) @db.Uuid
+  userId               String          @map("user_id") @db.Uuid
+  accountId            String          @map("account_id") @db.Uuid
+  destinationAccountId String?         @map("destination_account_id") @db.Uuid
+  categoryId           String?         @map("category_id") @db.Uuid
+  type                 TransactionType
+  description          String          @db.VarChar(120)
+  amount               Decimal         @db.Decimal(14, 2)
+  currency             String          @default("AUD") @db.Char(3)
+  transactionDate      DateTime        @map("transaction_date") @db.Timestamptz(3)
+  notes                String?
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                 User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account              Account         @relation("SourceAccount", fields: [accountId], references: [id], onDelete: Restrict)
+  destinationAccount   Account?        @relation("DestinationAccount", fields: [destinationAccountId], references: [id], onDelete: Restrict)
+  category             Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, transactionDate])
+  @@index([accountId, transactionDate])
+  @@index([categoryId])
+  @@index([destinationAccountId])
+  @@map("transactions")
+}

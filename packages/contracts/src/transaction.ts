@@ -20,6 +20,7 @@ export const createTransactionSchema = z.object({
     .regex(currencyPattern, 'Currency must be a 3-letter uppercase code'),
   transactionDate: z.iso.datetime(),
   accountId: z.uuid(),
+  destinationAccountId: z.uuid().nullable().optional(),
   categoryId: z.uuid().nullable(),
   notes: z.string().trim().max(500).nullable().optional(),
 });
@@ -36,6 +37,8 @@ export const updateTransactionSchema = createTransactionSchema
 export const transactionSchema = createTransactionSchema.extend({
   id: z.uuid(),
   userId: z.uuid(),
+  destinationAccountId: z.uuid().nullable(),
+  notes: z.string().trim().max(500).nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });

@@ -5,7 +5,13 @@
     "dev:client": "npm run dev --workspace=@savent/client",
     "dev:server": "npm run dev --workspace=@savent/server",
     "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:up": "docker compose up -d database",
+    "db:down": "docker compose down",
+    "db:generate": "npm run db:generate --workspace=@savent/server",
+    "db:migrate": "npm run db:migrate --workspace=@savent/server",
+    "db:seed": "npm run db:seed --workspace=@savent/server",
+    "db:studio": "npm run db:studio --workspace=@savent/server"
   },
   "keywords": [],
   "author": "",
@@ -17,8 +23,10 @@
     "apps/*"
   ],
   "allowScripts": {
+    "@prisma/engines@7.9.1": true,
     "esbuild@0.28.1": true,
-    "fsevents@2.3.3": true
+    "fsevents@2.3.3": true,
+    "prisma@7.9.1": true
   },
   "engines": {
     "node": ">=24 <25"
