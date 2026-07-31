@@ -1,12 +1,11 @@
 import 'dotenv/config';
 
 import { app } from './app.js';
+import { env } from './config/env.js';
 import { prisma } from './lib/prisma.js';
 
-const port = Number(process.env.PORT) || 3000;
-
-const server = app.listen(port, () => {
-  console.log(`Savent API running at http://localhost:${port}`);
+const server = app.listen(env.PORT, () => {
+  console.log(`Savent API running at http://localhost:${env.PORT}`);
 });
 
 function shutdown(signal: string) {

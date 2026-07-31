@@ -8,11 +8,11 @@ services:
       POSTGRES_USER: savent
       POSTGRES_PASSWORD: savent
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - savent_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U savent -d savent"]
+      test: ['CMD-SHELL', 'pg_isready -U savent -d savent']
       interval: 5s
       timeout: 5s
       retries: 10

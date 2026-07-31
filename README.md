@@ -44,6 +44,13 @@ clear dashboards and reports.
 - PostgreSQL
 - Prisma ORM
 
+### Development quality
+
+- Vitest and Supertest
+- ESLint and Prettier
+- Docker Compose
+- GitHub Actions
+
 ## Repository structure
 
 Savent uses npm workspaces to keep the frontend, backend, and future shared
@@ -61,6 +68,11 @@ Savent/
 │       └── .env.example
 ├── packages/
 │   └── contracts/          # Shared Zod schemas and TypeScript types
+├── docs/
+│   └── architecture.md      # System boundaries and request flow
+├── scripts/
+│   └── setup-env.mjs        # Safe local environment bootstrap
+├── .github/                 # CI, Dependabot, and pull request template
 ├── .gitignore
 ├── package-lock.json
 ├── package.json             # Root npm workspace configuration
@@ -74,67 +86,45 @@ Savent/
 - Node.js 24 LTS recommended
 - npm
 - Git
+- Docker Desktop
 
-### Installation
+### Quick setup
 
 Clone the repository:
 
 ```bash
 git clone https://github.com/builtbynandan/Savent.git
 cd Savent
+nvm use
 ```
 
-Install all workspace dependencies from the repository root:
+Install dependencies, create the local environment file, start PostgreSQL,
+apply migrations, and load demo data:
 
 ```bash
-npm install
+npm run setup
 ```
 
-Create the server's local environment file:
+`npm run setup` is safe to run again. It preserves an existing `.env` file and
+uses the committed migrations and deterministic seed data.
+
+Start the frontend and API together:
 
 ```bash
-cp apps/server/.env.example apps/server/.env
+npm run dev
 ```
 
-The default development configuration is:
+The frontend is normally available at
+[`http://localhost:5173`](http://localhost:5173), and the API at
+[`http://localhost:3000`](http://localhost:3000).
+
+The generated local environment uses:
 
 ```dotenv
 PORT=3000
 CLIENT_URL=http://localhost:5173
 DATABASE_URL=postgresql://savent:savent@localhost:5432/savent?schema=public
 ```
-
-Start PostgreSQL:
-
-```bash
-npm run db:up
-```
-
-Apply migrations and load the development data:
-
-```bash
-npm run db:migrate
-npm run db:seed
-```
-
-### Run the client
-
-```bash
-npm run dev:client
-```
-
-The frontend is normally available at
-[`http://localhost:5173`](http://localhost:5173).
-
-### Run the API
-
-Open a second terminal at the repository root:
-
-```bash
-npm run dev:server
-```
-
-The API is available at [`http://localhost:3000`](http://localhost:3000).
 
 Check the health endpoint:
 
@@ -168,19 +158,25 @@ npm run db:down
 
 Run these commands from the repository root:
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev:client` | Start the React development server |
-| `npm run dev:server` | Start the API in watch mode |
-| `npm run typecheck` | Type-check workspaces that provide a type-check script |
-| `npm run build` | Build all workspaces |
-| `npm run lint --workspace=@savent/client` | Lint the React client |
-| `npm run db:up` | Start PostgreSQL with Docker Compose |
-| `npm run db:down` | Stop PostgreSQL |
-| `npm run db:generate` | Generate the Prisma Client |
-| `npm run db:migrate` | Create and apply development migrations |
-| `npm run db:seed` | Load deterministic demo data |
-| `npm run db:studio` | Open Prisma Studio |
+| Command                     | Purpose                                          |
+| --------------------------- | ------------------------------------------------ |
+| `npm run setup`             | Prepare a complete local development environment |
+| `npm run dev`               | Start the client and API together                |
+| `npm run dev:client`        | Start the React development server               |
+| `npm run dev:server`        | Start the API in watch mode                      |
+| `npm run check`             | Run every local and CI quality gate              |
+| `npm test`                  | Run all automated tests                          |
+| `npm run lint`              | Lint every workspace                             |
+| `npm run format`            | Format the repository with Prettier              |
+| `npm run typecheck`         | Type-check every workspace                       |
+| `npm run build`             | Build all workspaces                             |
+| `npm run db:up`             | Start PostgreSQL with Docker Compose             |
+| `npm run db:down`           | Stop PostgreSQL                                  |
+| `npm run db:generate`       | Generate the Prisma Client                       |
+| `npm run db:migrate`        | Create and apply development migrations          |
+| `npm run db:migrate:deploy` | Apply existing migrations                        |
+| `npm run db:seed`           | Load deterministic demo data                     |
+| `npm run db:studio`         | Open Prisma Studio                               |
 
 ## Development roadmap
 
@@ -188,13 +184,17 @@ Run these commands from the repository root:
 - [x] Add shared Zod API contracts
 - [x] Configure PostgreSQL and Prisma
 - [x] Add continuous integration
+- [x] Add automated contract and API tests
+- [x] Add formatting, linting, environment validation, and contributor tooling
 - [ ] Build transaction creation and listing end to end
 - [ ] Add authentication and user data isolation
 - [ ] Build budgets, dashboard summaries, and reports
-- [ ] Add automated tests and deployment
+- [ ] Add production deployment and monitoring
 
 ## Contributing
 
 Savent is currently an early-stage portfolio project. Bug reports, suggestions,
 and focused pull requests are welcome through
-[GitHub Issues](https://github.com/builtbynandan/Savent/issues).
+[GitHub Issues](https://github.com/builtbynandan/Savent/issues). See
+[CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and
+[docs/architecture.md](docs/architecture.md) for the system design.

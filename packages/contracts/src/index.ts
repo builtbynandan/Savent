@@ -1,3 +1,5 @@
+export { apiErrorSchema, type ApiError } from './error.js';
+
 export {
   databaseHealthErrorSchema,
   databaseHealthResponseSchema,

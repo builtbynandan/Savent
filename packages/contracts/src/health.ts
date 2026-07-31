@@ -21,6 +21,4 @@ export type HealthResponse = z.infer<typeof healthResponseSchema>;
 export type DatabaseHealthResponse = z.infer<
   typeof databaseHealthResponseSchema
 >;
-export type DatabaseHealthError = z.infer<
-  typeof databaseHealthErrorSchema
->;
+export type DatabaseHealthError = z.infer<typeof databaseHealthErrorSchema>;

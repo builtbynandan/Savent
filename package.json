@@ -2,14 +2,25 @@
   "name": "savent",
   "version": "1.0.0",
   "scripts": {
+    "setup": "npm install && npm run setup:env && npm run db:up && npm run db:generate && npm run db:migrate:deploy && npm run db:seed",
+    "setup:env": "node scripts/setup-env.mjs",
+    "dev": "concurrently --kill-others-on-fail --names client,server --prefix-colors cyan,magenta \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "npm run dev --workspace=@savent/client",
     "dev:server": "npm run dev --workspace=@savent/server",
     "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint:backend && npm run lint --workspace=@savent/client",
+    "lint:backend": "eslint apps/server packages/contracts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "db:up": "docker compose up -d database",
+    "test": "npm run test --workspaces --if-present",
+    "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
+    "db:up": "docker compose up -d --wait database",
     "db:down": "docker compose down",
     "db:generate": "npm run db:generate --workspace=@savent/server",
     "db:migrate": "npm run db:migrate --workspace=@savent/server",
+    "db:migrate:deploy": "npm run db:migrate:deploy --workspace=@savent/server",
     "db:seed": "npm run db:seed --workspace=@savent/server",
     "db:studio": "npm run db:studio --workspace=@savent/server"
   },
@@ -30,5 +41,14 @@
   },
   "engines": {
     "node": ">=24 <25"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^10.0.4",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.8.0",
+    "prettier": "^3.9.6",
+    "typescript-eslint": "^8.65.0"
   }
 }

@@ -7,7 +7,9 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 
+import { env } from './config/env.js';
 import { prisma } from './lib/prisma.js';
+import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 
 export const app = express();
 
@@ -15,12 +17,12 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL ?? 'http://localhost:5173',
+    origin: env.CLIENT_URL,
     credentials: true,
   }),
 );
 
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 app.get('/api/health', (_request, response) => {
   const health = healthResponseSchema.parse({
@@ -56,8 +58,5 @@ app.get('/api/health/database', async (_request, response) => {
   }
 });
 
-app.use((_request, response) => {
-  response.status(404).json({
-    error: 'Route not found',
-  });
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
