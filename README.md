@@ -58,7 +58,8 @@ Savent/
 │       │   ├── app.ts       # Express application and middleware
 │       │   └── server.ts    # API process entry point
 │       └── .env.example
-├── packages/                # Future shared contracts and configuration
+├── packages/
+│   └── contracts/          # Shared Zod schemas and TypeScript types
 ├── .gitignore
 ├── package-lock.json
 ├── package.json             # Root npm workspace configuration
