@@ -1,0 +1,23 @@
+{
+  "name": "savent",
+  "version": "1.0.0",
+  "scripts": {
+    "dev:client": "npm run dev --workspace=@savent/client",
+    "dev:server": "npm run dev --workspace=@savent/server",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": true
+  }
+}
