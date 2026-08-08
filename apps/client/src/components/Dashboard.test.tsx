@@ -73,8 +73,8 @@ describe('Dashboard', () => {
     });
   });
 
-  it('renders summary, budget progress, and spending reports', async () => {
-    render(
+  it('renders focused overview and report views', async () => {
+    const { rerender } = render(
       <NotificationProvider>
         <Dashboard categories={[groceries]} reloadKey={0} />
       </NotificationProvider>,
@@ -83,6 +83,12 @@ describe('Dashboard', () => {
     expect(await screen.findByText('$12,500.00')).toBeInTheDocument();
     expect(screen.getAllByText('Groceries').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('29.1% used · $354.40 left')).toBeInTheDocument();
+
+    rerender(
+      <NotificationProvider>
+        <Dashboard categories={[groceries]} reloadKey={0} view="reports" />
+      </NotificationProvider>,
+    );
     expect(
       screen.getByRole('heading', { name: 'Income vs spending' }),
     ).toBeInTheDocument();
