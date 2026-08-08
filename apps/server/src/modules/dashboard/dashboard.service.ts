@@ -95,11 +95,16 @@ export async function getDashboard(userId: string, query: DashboardQuery) {
     await Promise.all([
       prisma.account.findMany({
         where: { userId, isArchived: false },
-        select: { openingBalance: true },
+        select: { id: true, openingBalance: true },
       }),
       prisma.transaction.findMany({
         where: { userId, transactionDate: { lt: end } },
-        select: { type: true, amount: true },
+        select: {
+          type: true,
+          amount: true,
+          accountId: true,
+          destinationAccountId: true,
+        },
       }),
       prisma.transaction.findMany({
         where: {
@@ -121,12 +126,21 @@ export async function getDashboard(userId: string, query: DashboardQuery) {
     (total, account) => total + Number(account.openingBalance),
     0,
   );
+  const activeAccountIds = new Set(accounts.map((account) => account.id));
   const balance = balanceTransactions.reduce((total, transaction) => {
-    if (transaction.type === TransactionType.INCOME)
-      return total + Number(transaction.amount);
-    if (transaction.type === TransactionType.EXPENSE)
-      return total - Number(transaction.amount);
-    return total;
+    const amount = Number(transaction.amount);
+    let next = total;
+    if (activeAccountIds.has(transaction.accountId)) {
+      next += transaction.type === TransactionType.INCOME ? amount : -amount;
+    }
+    if (
+      transaction.type === TransactionType.TRANSFER &&
+      transaction.destinationAccountId &&
+      activeAccountIds.has(transaction.destinationAccountId)
+    ) {
+      next += amount;
+    }
+    return next;
   }, openingBalance);
 
   const selectedTransactions = reportTransactions.filter(

@@ -60,6 +60,19 @@ are mounted behind `requireAuthentication` and never select a hard-coded demo
 user. New registrations create starter accounts and categories in the same
 database transaction as the user, preventing partially prepared workspaces.
 
+## Account lifecycle
+
+Accounts are user-owned aggregates with an opening balance and a calculated
+current balance. Income increases the source account, expenses decrease it,
+and transfers decrease the source while increasing the destination. The API
+calculates balances from transactions instead of persisting a second mutable
+balance value that could drift.
+
+Closing an account archives it rather than deleting it. Archived accounts stay
+attached to historical transactions but are excluded from transaction forms
+and the active dashboard balance. At least one active account is required so a
+user can always record new activity.
+
 ## Authentication model
 
 - Passwords use Node.js `scrypt` with a unique random salt.

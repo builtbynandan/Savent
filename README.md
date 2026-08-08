@@ -14,6 +14,7 @@ clear dashboards and reports.
 ## Planned features
 
 - Secure account registration and authentication
+- Bank, cash, savings, credit, and investment account management
 - Income, expense, and transfer tracking
 - Transaction search, filtering, sorting, and categorisation
 - Monthly category budgets with progress indicators
@@ -192,6 +193,24 @@ response includes filtered income and expense totals plus pagination metadata.
 The React transaction screen consumes these endpoints and shares its request
 and response schemas with the API through `@savent/contracts`.
 
+### Account API
+
+Cycle 6 exposes user-owned accounts and calculates each balance from its
+opening balance, income, expenses, and transfers:
+
+| Method  | Endpoint                    | Purpose                                    |
+| ------- | --------------------------- | ------------------------------------------ |
+| `GET`   | `/api/accounts`             | List active accounts and current balances  |
+| `POST`  | `/api/accounts`             | Create a financial account                 |
+| `PUT`   | `/api/accounts/:id`         | Update account details and opening balance |
+| `PATCH` | `/api/accounts/:id/archive` | Archive or restore an account              |
+
+Pass `includeArchived=true` to include closed accounts. Archiving preserves
+transaction history and removes the account from new transaction forms. Savent
+keeps at least one account active for every user.
+New accounts are currently AUD-only so dashboard totals never combine values
+from currencies without an exchange-rate conversion.
+
 ### Dashboard and budget API
 
 Cycle 4 adds monthly planning and reporting behind the same authenticated user
@@ -257,6 +276,9 @@ Run these commands from the repository root:
 - [x] Add authentication and user data isolation
 - [x] Build budgets, dashboard summaries, and reports
 - [x] Add production deployment and monitoring
+- [x] Add account management and per-account balances
+- [ ] Add custom category management
+- [ ] Add dark mode, notifications, and accessibility refinements
 
 ## Production operations
 

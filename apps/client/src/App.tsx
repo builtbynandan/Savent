@@ -15,6 +15,7 @@ import {
   updateTransaction,
 } from './api/transactions';
 import './App.css';
+import { Accounts } from './components/Accounts';
 import { AuthPage } from './components/AuthPage';
 import { Dashboard } from './components/Dashboard';
 import { TransactionForm } from './components/TransactionForm';
@@ -102,7 +103,7 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
         }
       });
     return () => controller.abort();
-  }, []);
+  }, [reloadKey]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -209,6 +210,7 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
         </a>
         <nav aria-label="Primary navigation">
           <a href="#overview">Overview</a>
+          <a href="#accounts">Accounts</a>
           <a className="active" href="#transactions">
             Transactions
           </a>
@@ -233,6 +235,8 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
 
       <main>
         <Dashboard categories={options.categories} reloadKey={reloadKey} />
+
+        <Accounts reloadKey={reloadKey} onChanged={refreshTransactions} />
 
         <section className="page-heading" id="transactions">
           <div>
