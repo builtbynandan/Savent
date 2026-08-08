@@ -3,6 +3,9 @@ import { type CSSProperties } from 'react';
 
 type TransactionListProps = {
   transactions: Transaction[];
+  onDelete: (transaction: Transaction) => void;
+  onEdit: (transaction: Transaction) => void;
+  onView: (transaction: Transaction) => void;
 };
 
 const dateFormatter = new Intl.DateTimeFormat('en-AU', {
@@ -18,15 +21,20 @@ function formatMoney(transaction: Transaction) {
   }).format(Number(transaction.amount));
 }
 
-export function TransactionList({ transactions }: TransactionListProps) {
+export function TransactionList({
+  transactions,
+  onDelete,
+  onEdit,
+  onView,
+}: TransactionListProps) {
   if (transactions.length === 0) {
     return (
       <div className="empty-state">
         <div className="empty-icon" aria-hidden="true">
-          ↗
+          ⌕
         </div>
-        <h3>No transactions yet</h3>
-        <p>Add your first income or expense using the form.</p>
+        <h3>No matching transactions</h3>
+        <p>Try clearing a filter or add a new transaction.</p>
       </div>
     );
   }
@@ -42,6 +50,9 @@ export function TransactionList({ transactions }: TransactionListProps) {
             <th scope="col">Date</th>
             <th className="amount-column" scope="col">
               Amount
+            </th>
+            <th className="actions-column" scope="col">
+              Actions
             </th>
           </tr>
         </thead>
@@ -80,20 +91,51 @@ export function TransactionList({ transactions }: TransactionListProps) {
                     {transaction.category.name}
                   </span>
                 ) : (
-                  <span className="muted">Uncategorised</span>
+                  <span className="muted">
+                    {transaction.type === 'transfer'
+                      ? 'Transfer'
+                      : 'Uncategorised'}
+                  </span>
                 )}
               </td>
-              <td>{transaction.account.name}</td>
+              <td>
+                {transaction.account.name}
+                {transaction.destinationAccount
+                  ? ` → ${transaction.destinationAccount.name}`
+                  : ''}
+              </td>
               <td>
                 {dateFormatter.format(new Date(transaction.transactionDate))}
               </td>
-              <td className={`amount-column amount-${transaction.type}`}>{`${
-                transaction.type === 'income'
-                  ? '+'
-                  : transaction.type === 'expense'
-                    ? '-'
-                    : ''
-              }${formatMoney(transaction)}`}</td>
+              <td
+                className={`amount-column amount-${transaction.type}`}
+              >{`${transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}${formatMoney(transaction)}`}</td>
+              <td className="actions-column">
+                <div className="row-actions">
+                  <button
+                    aria-label={`View ${transaction.description}`}
+                    onClick={() => onView(transaction)}
+                    type="button"
+                  >
+                    View
+                  </button>
+                  <button
+                    aria-label={`Edit ${transaction.description}`}
+                    onClick={() => onEdit(transaction)}
+                    type="button"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="danger-link"
+                    aria-label={`Delete ${transaction.description}`}
+                    onClick={() => onDelete(transaction)}
+                    type="button"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>

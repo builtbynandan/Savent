@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { createTransactionSchema } from '../src/index.js';
+import {
+  createTransactionSchema,
+  transactionQuerySchema,
+  updateTransactionSchema,
+} from '../src/index.js';
 
 const transaction = {
   type: 'expense',
@@ -56,5 +60,30 @@ describe('transaction contracts', () => {
         categoryId: null,
       }),
     ).toThrow();
+  });
+
+  it('adds safe pagination and sorting defaults', () => {
+    expect(transactionQuerySchema.parse({})).toMatchObject({
+      page: 1,
+      pageSize: 10,
+      search: '',
+      sort: 'date_desc',
+    });
+  });
+
+  it('rejects an inverted date range', () => {
+    expect(() =>
+      transactionQuerySchema.parse({
+        dateFrom: '2026-08-10',
+        dateTo: '2026-08-01',
+      }),
+    ).toThrow();
+  });
+
+  it('validates complete transaction updates', () => {
+    expect(updateTransactionSchema.parse(transaction)).toMatchObject({
+      description: 'Groceries',
+    });
+    expect(() => updateTransactionSchema.parse({ amount: '10.00' })).toThrow();
   });
 });

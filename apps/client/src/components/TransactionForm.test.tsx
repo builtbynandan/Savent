@@ -11,6 +11,12 @@ const accounts = [
     type: 'checking' as const,
     currency: 'AUD',
   },
+  {
+    id: '9dc88a33-3992-4991-9a43-16c803cacbf7',
+    name: 'Savings',
+    type: 'savings' as const,
+    currency: 'AUD',
+  },
 ];
 
 const categories = [
@@ -120,5 +126,82 @@ describe('TransactionForm', () => {
     expect(
       screen.queryByRole('option', { name: 'Groceries' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('submits a transfer between different accounts', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <TransactionForm
+        accounts={accounts}
+        categories={categories}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    await user.click(screen.getByRole('radio', { name: 'Transfer' }));
+    await user.type(screen.getByLabelText('Description'), 'Move to savings');
+    await user.type(screen.getByLabelText('Amount'), '250');
+    await user.selectOptions(
+      screen.getByLabelText('To account'),
+      accounts[1].id,
+    );
+    await user.click(screen.getByRole('button', { name: 'Add transaction' }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'transfer',
+          accountId: accounts[0].id,
+          destinationAccountId: accounts[1].id,
+          categoryId: null,
+        }),
+      ),
+    );
+  });
+
+  it('prefills and saves an existing transaction', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <TransactionForm
+        accounts={accounts}
+        categories={categories}
+        initialTransaction={{
+          id: '5107e223-b5e8-4cab-8783-9a966e9dc420',
+          userId: 'a682be9a-0eb5-43a2-b319-b0dbe8a8456f',
+          type: 'expense',
+          description: 'Original groceries',
+          amount: '42.50',
+          currency: 'AUD',
+          transactionDate: '2026-08-01T12:00:00.000Z',
+          accountId: accounts[0].id,
+          destinationAccountId: null,
+          categoryId: categories[0].id,
+          notes: 'Original note',
+          createdAt: '2026-08-01T12:00:00.000Z',
+          updatedAt: '2026-08-01T12:00:00.000Z',
+          account: accounts[0],
+          destinationAccount: null,
+          category: categories[0],
+        }}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.getByLabelText('Amount')).toHaveValue(42.5);
+    await user.clear(screen.getByLabelText('Description'));
+    await user.type(screen.getByLabelText('Description'), 'Edited groceries');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: 'Edited groceries',
+          amount: '42.50',
+          notes: 'Original note',
+        }),
+      ),
+    );
   });
 });

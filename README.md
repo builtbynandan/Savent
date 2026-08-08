@@ -150,13 +150,20 @@ curl http://localhost:3000/api/health/database
 
 ### Transaction API
 
-Cycle 1 provides the first complete product workflow:
+Cycles 1 and 2 provide a complete transaction-management workflow:
 
-| Method | Endpoint                    | Purpose                                   |
-| ------ | --------------------------- | ----------------------------------------- |
-| `GET`  | `/api/transactions`         | List the demo user's transactions         |
-| `GET`  | `/api/transactions/options` | List accounts and categories for the form |
-| `POST` | `/api/transactions`         | Validate and create an income or expense  |
+| Method   | Endpoint                    | Purpose                                            |
+| -------- | --------------------------- | -------------------------------------------------- |
+| `GET`    | `/api/transactions`         | Search, filter, sort, and paginate transactions    |
+| `GET`    | `/api/transactions/options` | List accounts and categories for forms and filters |
+| `GET`    | `/api/transactions/:id`     | Retrieve one transaction's details                 |
+| `POST`   | `/api/transactions`         | Validate and create income, expenses, or transfers |
+| `PUT`    | `/api/transactions/:id`     | Validate and replace an existing transaction       |
+| `DELETE` | `/api/transactions/:id`     | Permanently remove a transaction owned by the user |
+
+The list endpoint accepts `search`, `type`, `accountId`, `categoryId`,
+`dateFrom`, `dateTo`, `sort`, `page`, and `pageSize` query parameters. Its
+response includes filtered income and expense totals plus pagination metadata.
 
 The React transaction screen consumes these endpoints and shares its request
 and response schemas with the API through `@savent/contracts`.
@@ -200,6 +207,8 @@ Run these commands from the repository root:
 - [x] Add automated contract and API tests
 - [x] Add formatting, linting, environment validation, and contributor tooling
 - [x] Build transaction creation and listing end to end
+- [x] Add transaction search, filters, sorting, and pagination
+- [x] Add transaction details, editing, transfers, and guarded deletion
 - [ ] Add authentication and user data isolation
 - [ ] Build budgets, dashboard summaries, and reports
 - [ ] Add production deployment and monitoring
