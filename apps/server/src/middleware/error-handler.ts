@@ -4,6 +4,7 @@ import { ZodError } from 'zod';
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 
 import { AppError } from '../errors/app-error.js';
+import { logger } from '../lib/logger.js';
 
 export const notFoundHandler: RequestHandler = (request, response) => {
   const body = apiErrorSchema.parse({
@@ -50,7 +51,11 @@ export const errorHandler: ErrorRequestHandler = (
     return;
   }
 
-  console.error(error);
+  logger.error('unhandled_request_error', {
+    requestId: response.locals.requestId,
+    errorName: error instanceof Error ? error.name : 'UnknownError',
+    errorMessage: error instanceof Error ? error.message : String(error),
+  });
 
   const body = apiErrorSchema.parse({
     error: {

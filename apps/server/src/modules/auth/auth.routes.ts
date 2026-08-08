@@ -25,7 +25,7 @@ const cookieOptions = {
   maxAge: sessionDurationMilliseconds,
   path: '/',
   sameSite: 'lax' as const,
-  secure: env.NODE_ENV === 'production',
+  secure: env.SESSION_COOKIE_SECURE,
 };
 
 authRouter.post('/register', async (request, response) => {

@@ -23,7 +23,11 @@
     "db:migrate": "npm run db:migrate --workspace=@savent/server",
     "db:migrate:deploy": "npm run db:migrate:deploy --workspace=@savent/server",
     "db:seed": "npm run db:seed --workspace=@savent/server",
-    "db:studio": "npm run db:studio --workspace=@savent/server"
+    "db:studio": "npm run db:studio --workspace=@savent/server",
+    "prod:build": "docker compose --env-file .env.production -f compose.production.yml build",
+    "prod:up": "docker compose --env-file .env.production -f compose.production.yml up -d --wait",
+    "prod:down": "docker compose --env-file .env.production -f compose.production.yml down",
+    "prod:logs": "docker compose --env-file .env.production -f compose.production.yml logs -f --tail=200"
   },
   "keywords": [],
   "author": "",

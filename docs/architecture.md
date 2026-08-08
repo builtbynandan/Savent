@@ -45,13 +45,15 @@ its route, validation, service, and repository code close together. Keep
 ## Request flow
 
 1. Express receives and parses an HTTP request.
-2. Authentication middleware hashes the opaque session cookie and resolves its
+2. Observability middleware assigns or propagates a request ID and records the
+   request duration, status, and normalised path.
+3. Authentication middleware hashes the opaque session cookie and resolves its
    unexpired database session.
-3. A shared Zod contract validates boundary input.
-4. A feature service applies business rules using the authenticated user ID.
-5. Prisma reads or writes only records owned by that user.
-6. The route validates and returns a shared response contract.
-7. Errors are translated into the common API error shape.
+4. A shared Zod contract validates boundary input.
+5. A feature service applies business rules using the authenticated user ID.
+6. Prisma reads or writes only records owned by that user.
+7. The route validates and returns a shared response contract.
+8. Errors are translated into the common API error shape.
 
 Health and authentication entry endpoints are public. Transaction endpoints
 are mounted behind `requireAuthentication` and never select a hard-coded demo
@@ -84,6 +86,25 @@ This keeps transactions as the source of truth and prevents summary tables from
 drifting. Budget rows are persisted because they are user intent, while spent,
 remaining, percentage, savings rate, and chart series are calculated by the
 server. Every dashboard and budget query includes the authenticated user ID.
+
+## Production topology and observability
+
+The production Compose topology keeps PostgreSQL on a private network, runs
+database migrations as a one-shot prerequisite, and starts the API only after
+the database and migrations are ready. Nginx serves the built client, proxies
+`/api` requests to Express, and is the only service that publishes a host port.
+
+The API writes structured JSON logs to standard output. Every request carries
+an `X-Request-ID`, which is returned to the caller and included in its completion
+log. Prometheus metrics expose request counts, response duration sums, process
+uptime, and release metadata; route identifiers are normalised to avoid
+unbounded metric labels.
+
+Liveness reports whether the API process can serve requests. Readiness also
+checks PostgreSQL and should control whether a deployment receives traffic.
+The metrics endpoint can be protected with a bearer token. Production images
+run as non-root users and expose immutable release identifiers for correlation
+between deployments, health responses, metrics, and logs.
 
 ## Quality gates
 
