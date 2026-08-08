@@ -13,6 +13,21 @@ export {
 } from './auth.js';
 
 export {
+  budgetIdParamsSchema,
+  budgetInputSchema,
+  budgetProgressSchema,
+  budgetResponseSchema,
+  dashboardQuerySchema,
+  dashboardResponseSchema,
+  deleteBudgetResponseSchema,
+  monthSchema,
+  type BudgetInput,
+  type BudgetProgress,
+  type DashboardQuery,
+  type DashboardResponse,
+} from './dashboard.js';
+
+export {
   databaseHealthErrorSchema,
   databaseHealthResponseSchema,
   healthResponseSchema,

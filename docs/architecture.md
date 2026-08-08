@@ -69,6 +69,22 @@ database transaction as the user, preventing partially prepared workspaces.
 - Foreign transaction, account, and category identifiers are treated as
   unavailable rather than revealing ownership information.
 
+## Dashboard and reporting
+
+The dashboard module is read-optimised application logic rather than stored
+summary data. For a requested `YYYY-MM` period it combines:
+
+- active account opening balances;
+- income and expense transactions through the end of the month;
+- user-owned category budgets for that month;
+- six months of transaction history for trend reporting; and
+- category relations for spending distribution.
+
+This keeps transactions as the source of truth and prevents summary tables from
+drifting. Budget rows are persisted because they are user intent, while spent,
+remaining, percentage, savings rate, and chart series are calculated by the
+server. Every dashboard and budget query includes the authenticated user ID.
+
 ## Quality gates
 
 `npm run check` formats, lints, type-checks, tests, and builds every workspace.

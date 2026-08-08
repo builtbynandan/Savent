@@ -12,6 +12,7 @@ import { prisma } from './lib/prisma.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { requireAuthentication } from './middleware/authentication.js';
 import { authRouter } from './modules/auth/auth.routes.js';
+import { dashboardRouter } from './modules/dashboard/dashboard.routes.js';
 import { transactionRouter } from './modules/transactions/transaction.routes.js';
 
 export const app = express();
@@ -28,6 +29,7 @@ app.use(
 app.use(express.json({ limit: '1mb' }));
 
 app.use('/api/auth', authRouter);
+app.use('/api/dashboard', requireAuthentication, dashboardRouter);
 app.use('/api/transactions', requireAuthentication, transactionRouter);
 
 app.get('/api/health', (_request, response) => {

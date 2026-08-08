@@ -192,6 +192,23 @@ response includes filtered income and expense totals plus pagination metadata.
 The React transaction screen consumes these endpoints and shares its request
 and response schemas with the API through `@savent/contracts`.
 
+### Dashboard and budget API
+
+Cycle 4 adds monthly planning and reporting behind the same authenticated user
+boundary:
+
+| Method   | Endpoint                       | Purpose                                     |
+| -------- | ------------------------------ | ------------------------------------------- |
+| `GET`    | `/api/dashboard?month=YYYY-MM` | KPIs, budget progress, and spending reports |
+| `POST`   | `/api/dashboard/budgets`       | Create a monthly expense-category budget    |
+| `PUT`    | `/api/dashboard/budgets/:id`   | Update a user-owned budget                  |
+| `DELETE` | `/api/dashboard/budgets/:id`   | Delete a user-owned budget                  |
+
+The dashboard calculates current balance, monthly income and expenses, savings
+rate, budget usage, six-month income-versus-expense trends, and category
+spending. Budget progress moves through on-track, near-limit, and over-budget
+states using actual transactions for the selected month.
+
 Stop PostgreSQL when you are finished:
 
 ```bash
@@ -234,7 +251,7 @@ Run these commands from the repository root:
 - [x] Add transaction search, filters, sorting, and pagination
 - [x] Add transaction details, editing, transfers, and guarded deletion
 - [x] Add authentication and user data isolation
-- [ ] Build budgets, dashboard summaries, and reports
+- [x] Build budgets, dashboard summaries, and reports
 - [ ] Add production deployment and monitoring
 
 ## Contributing

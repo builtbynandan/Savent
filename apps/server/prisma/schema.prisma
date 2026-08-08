@@ -39,6 +39,7 @@ model User {
   categories   Category[]
   transactions Transaction[]
   sessions     Session[]
+  budgets      Budget[]
 
   @@map("users")
 }
@@ -87,10 +88,27 @@ model Category {
   updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
+  budgets      Budget[]
 
   @@unique([userId, name, kind])
   @@index([userId, kind])
   @@map("categories")
+}
+
+model Budget {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  month      DateTime @db.Date
+  amount     Decimal  @db.Decimal(14, 2)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId, month])
+  @@index([userId, month])
+  @@map("budgets")
 }
 
 model Transaction {
