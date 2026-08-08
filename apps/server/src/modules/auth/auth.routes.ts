@@ -10,6 +10,7 @@ import {
   readSessionToken,
   requireAuthentication,
 } from '../../middleware/authentication.js';
+import { createRateLimiter } from '../../middleware/rate-limit.js';
 import {
   deleteSession,
   login,
@@ -20,6 +21,15 @@ import {
 
 export const authRouter = Router();
 
+const loginRateLimit = createRateLimiter({
+  limit: 8,
+  windowMilliseconds: 15 * 60 * 1000,
+});
+const registrationRateLimit = createRateLimiter({
+  limit: 5,
+  windowMilliseconds: 60 * 60 * 1000,
+});
+
 const cookieOptions = {
   httpOnly: true,
   maxAge: sessionDurationMilliseconds,
@@ -28,14 +38,18 @@ const cookieOptions = {
   secure: env.SESSION_COOKIE_SECURE,
 };
 
-authRouter.post('/register', async (request, response) => {
-  const input = registerSchema.parse(request.body);
-  const result = await register(input);
-  response.cookie(sessionCookieName, result.token, cookieOptions);
-  response.status(201).json(result.body);
-});
+authRouter.post(
+  '/register',
+  registrationRateLimit,
+  async (request, response) => {
+    const input = registerSchema.parse(request.body);
+    const result = await register(input);
+    response.cookie(sessionCookieName, result.token, cookieOptions);
+    response.status(201).json(result.body);
+  },
+);
 
-authRouter.post('/login', async (request, response) => {
+authRouter.post('/login', loginRateLimit, async (request, response) => {
   const input = loginSchema.parse(request.body);
   const result = await login(input);
   response.cookie(sessionCookieName, result.token, cookieOptions);

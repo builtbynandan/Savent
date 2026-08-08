@@ -51,7 +51,7 @@ describe('authentication API', () => {
       optionsResponse.body,
     ).data;
     expect(options.accounts).toHaveLength(2);
-    expect(options.categories).toHaveLength(5);
+    expect(options.categories).toHaveLength(8);
 
     const transactionsResponse = await agent
       .get('/api/transactions')
@@ -105,5 +105,25 @@ describe('authentication API', () => {
     await otherAgent
       .get(`/api/transactions/${demoTransactions[0]?.id}`)
       .expect(404);
+  });
+
+  it('rate limits repeated login attempts from one client', async () => {
+    const clientAddress = '203.0.113.42';
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      await request(app)
+        .post('/api/auth/login')
+        .set('x-forwarded-for', clientAddress)
+        .send({ email: 'demo@savent.app', password: 'incorrect-password' })
+        .expect(401);
+    }
+
+    const response = await request(app)
+      .post('/api/auth/login')
+      .set('x-forwarded-for', clientAddress)
+      .send({ email: 'demo@savent.app', password: 'incorrect-password' })
+      .expect(429);
+
+    expect(response.body.error.code).toBe('RATE_LIMITED');
+    expect(response.headers['retry-after']).toBeDefined();
   });
 });

@@ -8,6 +8,7 @@ import {
 } from '@savent/contracts';
 
 import { AccountType, TransactionType } from '../../generated/prisma/enums.js';
+import { Prisma } from '../../generated/prisma/client.js';
 import { AppError } from '../../errors/app-error.js';
 import { prisma } from '../../lib/prisma.js';
 
@@ -22,7 +23,7 @@ const accountTypeByContract: Record<ContractAccountType, AccountType> = {
 
 type AccountRecord = Awaited<ReturnType<typeof findAccount>>;
 
-function money(value: number) {
+function money(value: Prisma.Decimal) {
   return value.toFixed(2);
 }
 
@@ -35,59 +36,65 @@ async function findAccount(userId: string, id: string) {
 }
 
 async function balances(userId: string, accountIds: string[]) {
-  const values = new Map(accountIds.map((id) => [id, 0]));
+  const values = new Map(accountIds.map((id) => [id, new Prisma.Decimal(0)]));
   if (accountIds.length === 0) return values;
 
-  const transactions = await prisma.transaction.findMany({
-    where: {
-      userId,
-      OR: [
-        { accountId: { in: accountIds } },
-        { destinationAccountId: { in: accountIds } },
-      ],
-    },
-    select: {
-      type: true,
-      amount: true,
-      accountId: true,
-      destinationAccountId: true,
-    },
-  });
+  const [sourceTotals, destinationTotals] = await Promise.all([
+    prisma.transaction.groupBy({
+      by: ['accountId', 'type'],
+      where: { userId, accountId: { in: accountIds } },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.groupBy({
+      by: ['destinationAccountId'],
+      where: {
+        userId,
+        type: TransactionType.TRANSFER,
+        destinationAccountId: { in: accountIds },
+      },
+      _sum: { amount: true },
+    }),
+  ]);
 
-  for (const transaction of transactions) {
-    const amount = Number(transaction.amount);
-    if (transaction.type === TransactionType.INCOME) {
+  for (const total of sourceTotals) {
+    const amount = total._sum.amount ?? new Prisma.Decimal(0);
+    if (total.type === TransactionType.INCOME) {
       values.set(
-        transaction.accountId,
-        (values.get(transaction.accountId) ?? 0) + amount,
+        total.accountId,
+        (values.get(total.accountId) ?? new Prisma.Decimal(0)).add(amount),
       );
     } else {
       values.set(
-        transaction.accountId,
-        (values.get(transaction.accountId) ?? 0) - amount,
+        total.accountId,
+        (values.get(total.accountId) ?? new Prisma.Decimal(0)).sub(amount),
       );
     }
-    if (
-      transaction.type === TransactionType.TRANSFER &&
-      transaction.destinationAccountId
-    ) {
-      values.set(
-        transaction.destinationAccountId,
-        (values.get(transaction.destinationAccountId) ?? 0) + amount,
-      );
-    }
+  }
+
+  for (const total of destinationTotals) {
+    if (!total.destinationAccountId) continue;
+    const amount = total._sum.amount ?? new Prisma.Decimal(0);
+    values.set(
+      total.destinationAccountId,
+      (values.get(total.destinationAccountId) ?? new Prisma.Decimal(0)).add(
+        amount,
+      ),
+    );
   }
   return values;
 }
 
-function mapAccount(account: AccountRecord, activityBalance: number): Account {
+function mapAccount(
+  account: AccountRecord,
+  activityBalance: Prisma.Decimal,
+): Account {
   return {
     id: account.id,
     name: account.name,
     type: account.type.toLowerCase() as Account['type'],
     currency: account.currency,
-    openingBalance: money(Number(account.openingBalance)),
-    balance: money(Number(account.openingBalance) + activityBalance),
+    openingBalance: money(account.openingBalance),
+    balance: money(account.openingBalance.add(activityBalance)),
     isArchived: account.isArchived,
     createdAt: account.createdAt.toISOString(),
     updatedAt: account.updatedAt.toISOString(),
@@ -115,7 +122,10 @@ async function ensureUniqueName(userId: string, name: string, id?: string) {
 async function responseFor(userId: string, account: AccountRecord) {
   const activity = await balances(userId, [account.id]);
   return accountResponseSchema.parse({
-    data: mapAccount(account, activity.get(account.id) ?? 0),
+    data: mapAccount(
+      account,
+      activity.get(account.id) ?? new Prisma.Decimal(0),
+    ),
   });
 }
 
@@ -130,7 +140,7 @@ export async function listAccounts(userId: string, includeArchived: boolean) {
   );
   return accountsResponseSchema.parse({
     data: accounts.map((account) =>
-      mapAccount(account, activity.get(account.id) ?? 0),
+      mapAccount(account, activity.get(account.id) ?? new Prisma.Decimal(0)),
     ),
   });
 }

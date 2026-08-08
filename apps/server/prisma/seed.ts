@@ -25,15 +25,15 @@ async function seed() {
     },
   });
 
-  const everyday = await prisma.account.upsert({
-    where: {
-      userId_name: {
-        userId: user.id,
-        name: 'Everyday',
-      },
-    },
-    update: {},
-    create: {
+  // Keep repeated local/CI seeds deterministic even after the demo workspace
+  // has been edited through the UI. Sessions intentionally remain valid.
+  await prisma.budget.deleteMany({ where: { userId: user.id } });
+  await prisma.transaction.deleteMany({ where: { userId: user.id } });
+  await prisma.category.deleteMany({ where: { userId: user.id } });
+  await prisma.account.deleteMany({ where: { userId: user.id } });
+
+  const everyday = await prisma.account.create({
+    data: {
       userId: user.id,
       name: 'Everyday',
       type: AccountType.CHECKING,
@@ -42,15 +42,8 @@ async function seed() {
     },
   });
 
-  const savings = await prisma.account.upsert({
-    where: {
-      userId_name: {
-        userId: user.id,
-        name: 'Savings',
-      },
-    },
-    update: {},
-    create: {
+  const savings = await prisma.account.create({
+    data: {
       userId: user.id,
       name: 'Savings',
       type: AccountType.SAVINGS,
@@ -90,23 +83,30 @@ async function seed() {
       color: '#7C3AED',
       icon: 'house',
     },
+    {
+      name: 'Utilities',
+      kind: CategoryKind.EXPENSE,
+      color: '#0F766E',
+      icon: 'receipt',
+    },
+    {
+      name: 'Health',
+      kind: CategoryKind.EXPENSE,
+      color: '#DB2777',
+      icon: 'heart',
+    },
+    {
+      name: 'Subscriptions',
+      kind: CategoryKind.EXPENSE,
+      color: '#9333EA',
+      icon: 'film',
+    },
   ] as const;
 
   const categories = await Promise.all(
     categoryDefinitions.map((category) =>
-      prisma.category.upsert({
-        where: {
-          userId_name_kind: {
-            userId: user.id,
-            name: category.name,
-            kind: category.kind,
-          },
-        },
-        update: {
-          color: category.color,
-          icon: category.icon,
-        },
-        create: {
+      prisma.category.create({
+        data: {
           userId: user.id,
           ...category,
           isSystem: true,
@@ -119,14 +119,108 @@ async function seed() {
     categories.map((category) => [category.name, category]),
   );
 
-  await prisma.transaction.deleteMany({
-    where: {
-      userId: user.id,
-    },
-  });
-
   await prisma.transaction.createMany({
     data: [
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Salary')?.id,
+        type: TransactionType.INCOME,
+        description: 'March salary',
+        amount: '3100.00',
+        currency: 'AUD',
+        transactionDate: new Date('2026-03-25T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Rent')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'March rent',
+        amount: '1750.00',
+        currency: 'AUD',
+        transactionDate: new Date('2026-03-02T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Groceries')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Coles and market shops',
+        amount: '268.45',
+        currency: 'AUD',
+        transactionDate: new Date('2026-03-18T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Utilities')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Electricity and internet',
+        amount: '138.20',
+        currency: 'AUD',
+        transactionDate: new Date('2026-03-12T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Health')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Pharmacy',
+        amount: '62.00',
+        currency: 'AUD',
+        transactionDate: new Date('2026-03-09T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Salary')?.id,
+        type: TransactionType.INCOME,
+        description: 'April salary',
+        amount: '3120.00',
+        currency: 'AUD',
+        transactionDate: new Date('2026-04-24T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Rent')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'April rent',
+        amount: '1750.00',
+        currency: 'AUD',
+        transactionDate: new Date('2026-04-02T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Groceries')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Weekly groceries',
+        amount: '302.18',
+        currency: 'AUD',
+        transactionDate: new Date('2026-04-19T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Subscriptions')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Streaming subscription',
+        amount: '24.99',
+        currency: 'AUD',
+        transactionDate: new Date('2026-04-11T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Transport')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Opal top up',
+        amount: '42.00',
+        currency: 'AUD',
+        transactionDate: new Date('2026-04-07T00:00:00.000Z'),
+      },
       {
         userId: user.id,
         accountId: everyday.id,
@@ -150,6 +244,36 @@ async function seed() {
       {
         userId: user.id,
         accountId: everyday.id,
+        categoryId: categoryByName.get('Rent')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'May rent',
+        amount: '1750.00',
+        currency: 'AUD',
+        transactionDate: new Date('2026-05-02T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Utilities')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Internet and electricity',
+        amount: '149.30',
+        currency: 'AUD',
+        transactionDate: new Date('2026-05-13T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Dining')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Birthday dinner',
+        amount: '84.20',
+        currency: 'AUD',
+        transactionDate: new Date('2026-05-17T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
         categoryId: categoryByName.get('Salary')?.id,
         type: TransactionType.INCOME,
         description: 'June salary',
@@ -166,6 +290,46 @@ async function seed() {
         amount: '1800.00',
         currency: 'AUD',
         transactionDate: new Date('2026-06-02T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Groceries')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'June groceries',
+        amount: '278.66',
+        currency: 'AUD',
+        transactionDate: new Date('2026-06-18T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Utilities')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Household utilities',
+        amount: '142.00',
+        currency: 'AUD',
+        transactionDate: new Date('2026-06-12T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Health')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Dental check-up',
+        amount: '55.90',
+        currency: 'AUD',
+        transactionDate: new Date('2026-06-09T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Transport')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Opal top up',
+        amount: '45.00',
+        currency: 'AUD',
+        transactionDate: new Date('2026-06-06T00:00:00.000Z'),
       },
       {
         userId: user.id,
@@ -196,6 +360,46 @@ async function seed() {
         amount: '800.00',
         currency: 'AUD',
         transactionDate: new Date('2026-07-29T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Rent')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'July rent',
+        amount: '1800.00',
+        currency: 'AUD',
+        transactionDate: new Date('2026-07-02T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Dining')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Lunch with colleagues',
+        amount: '71.80',
+        currency: 'AUD',
+        transactionDate: new Date('2026-07-16T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Subscriptions')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Streaming subscription',
+        amount: '24.99',
+        currency: 'AUD',
+        transactionDate: new Date('2026-07-11T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Utilities')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Quarterly water bill',
+        amount: '150.12',
+        currency: 'AUD',
+        transactionDate: new Date('2026-07-08T00:00:00.000Z'),
       },
       {
         userId: user.id,
@@ -247,10 +451,49 @@ async function seed() {
         currency: 'AUD',
         transactionDate: new Date('2026-08-07T00:00:00.000Z'),
       },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Utilities')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Electricity and internet',
+        amount: '151.75',
+        currency: 'AUD',
+        transactionDate: new Date('2026-08-08T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Subscriptions')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Streaming subscription',
+        amount: '24.99',
+        currency: 'AUD',
+        transactionDate: new Date('2026-08-04T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Health')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Physio appointment',
+        amount: '89.50',
+        currency: 'AUD',
+        transactionDate: new Date('2026-08-08T00:00:00.000Z'),
+      },
+      {
+        userId: user.id,
+        accountId: everyday.id,
+        categoryId: categoryByName.get('Dining')?.id,
+        type: TransactionType.EXPENSE,
+        description: 'Coffee and breakfast',
+        amount: '18.50',
+        currency: 'AUD',
+        transactionDate: new Date('2026-08-08T00:00:00.000Z'),
+      },
     ],
   });
 
-  await prisma.budget.deleteMany({ where: { userId: user.id } });
   await prisma.budget.createMany({
     data: [
       {
@@ -276,6 +519,18 @@ async function seed() {
         categoryId: categoryByName.get('Rent')!.id,
         month: new Date('2026-08-01T00:00:00.000Z'),
         amount: '1800.00',
+      },
+      {
+        userId: user.id,
+        categoryId: categoryByName.get('Utilities')!.id,
+        month: new Date('2026-08-01T00:00:00.000Z'),
+        amount: '300.00',
+      },
+      {
+        userId: user.id,
+        categoryId: categoryByName.get('Health')!.id,
+        month: new Date('2026-08-01T00:00:00.000Z'),
+        amount: '200.00',
       },
     ],
   });
