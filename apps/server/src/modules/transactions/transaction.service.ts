@@ -142,7 +142,7 @@ export async function getTransactionOptions(userId: string) {
     orderBy: { name: 'asc' },
   });
   const categories = await prisma.category.findMany({
-    where: { userId },
+    where: { userId, isArchived: false },
     orderBy: [{ kind: 'asc' }, { name: 'asc' }],
   });
 
@@ -183,7 +183,7 @@ async function validateTransactionReferences(
   });
   const category = input.categoryId
     ? await prisma.category.findFirst({
-        where: { id: input.categoryId, userId },
+        where: { id: input.categoryId, userId, isArchived: false },
       })
     : null;
 

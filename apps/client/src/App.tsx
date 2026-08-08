@@ -17,6 +17,7 @@ import {
 import './App.css';
 import { Accounts } from './components/Accounts';
 import { AuthPage } from './components/AuthPage';
+import { Categories } from './components/Categories';
 import { Dashboard } from './components/Dashboard';
 import { TransactionForm } from './components/TransactionForm';
 import { TransactionList } from './components/TransactionList';
@@ -211,6 +212,7 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
         <nav aria-label="Primary navigation">
           <a href="#overview">Overview</a>
           <a href="#accounts">Accounts</a>
+          <a href="#categories">Categories</a>
           <a className="active" href="#transactions">
             Transactions
           </a>
@@ -237,6 +239,8 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
         <Dashboard categories={options.categories} reloadKey={reloadKey} />
 
         <Accounts reloadKey={reloadKey} onChanged={refreshTransactions} />
+
+        <Categories reloadKey={reloadKey} onChanged={refreshTransactions} />
 
         <section className="page-heading" id="transactions">
           <div>

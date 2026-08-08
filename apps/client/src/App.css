@@ -316,6 +316,106 @@ main {
   gap: 18px;
 }
 
+.categories-section {
+  margin-bottom: 58px;
+  scroll-margin-top: 92px;
+}
+
+.categories-layout {
+  align-items: start;
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.75fr);
+}
+
+.category-manager-list {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.category-manager-list .loading-state {
+  grid-column: 1 / -1;
+}
+
+.category-manager-card {
+  align-items: center;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: grid;
+  gap: 13px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 16px;
+}
+
+.category-manager-card.archived {
+  background: var(--surface);
+  opacity: 0.72;
+}
+
+.category-icon {
+  align-items: center;
+  border-radius: 12px;
+  color: white;
+  display: flex;
+  font-size: 1rem;
+  font-weight: 800;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.category-card-copy {
+  min-width: 0;
+}
+
+.category-card-copy h3 {
+  color: var(--ink);
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.category-card-copy span,
+.category-card-copy small {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.category-card-copy span {
+  text-transform: capitalize;
+}
+
+.category-card-copy small {
+  display: block;
+  margin-top: 7px;
+}
+
+.category-card-actions {
+  display: flex;
+  gap: 7px;
+  grid-column: 1 / -1;
+}
+
+.category-card-actions button {
+  padding: 7px 10px;
+}
+
+.category-form-panel {
+  padding: 22px;
+}
+
+.category-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.colour-input {
+  cursor: pointer;
+  padding: 5px !important;
+}
+
 .content-grid {
   align-items: start;
   display: grid;
@@ -1550,6 +1650,10 @@ main {
     grid-template-columns: 1fr;
   }
 
+  .categories-layout {
+    grid-template-columns: 1fr;
+  }
+
   .filter-panel {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1560,6 +1664,10 @@ main {
   }
 
   .account-form-panel {
+    grid-row: 1;
+  }
+
+  .category-form-panel {
     grid-row: 1;
   }
 
@@ -1623,6 +1731,10 @@ main {
   }
 
   .account-list {
+    grid-template-columns: 1fr;
+  }
+
+  .category-manager-list {
     grid-template-columns: 1fr;
   }
 

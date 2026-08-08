@@ -228,6 +228,21 @@ rate, budget usage, six-month income-versus-expense trends, and category
 spending. Budget progress moves through on-track, near-limit, and over-budget
 states using actual transactions for the selected month.
 
+### Category API
+
+Cycle 7 adds safe category customisation behind the authenticated user boundary:
+
+| Method  | Endpoint                      | Purpose                                         |
+| ------- | ----------------------------- | ----------------------------------------------- |
+| `GET`   | `/api/categories`             | List categories and their usage counts          |
+| `POST`  | `/api/categories`             | Create a custom income or expense category      |
+| `PUT`   | `/api/categories/:id`         | Edit a custom category's name, colour, and icon |
+| `PATCH` | `/api/categories/:id/archive` | Archive or restore a category                   |
+
+Archiving removes a category from new transaction and budget forms while
+preserving every historical relationship. Starter categories can be archived
+or restored, but only custom categories can be renamed or redesigned.
+
 Stop PostgreSQL when you are finished:
 
 ```bash
@@ -277,7 +292,7 @@ Run these commands from the repository root:
 - [x] Build budgets, dashboard summaries, and reports
 - [x] Add production deployment and monitoring
 - [x] Add account management and per-account balances
-- [ ] Add custom category management
+- [x] Add custom category management
 - [ ] Add dark mode, notifications, and accessibility refinements
 
 ## Production operations
