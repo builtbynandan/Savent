@@ -238,6 +238,10 @@ Run these commands from the repository root:
 | `npm run db:migrate:deploy` | Apply existing migrations                        |
 | `npm run db:seed`           | Load deterministic demo data                     |
 | `npm run db:studio`         | Open Prisma Studio                               |
+| `npm run prod:build`        | Build production client and API containers       |
+| `npm run prod:up`           | Migrate and start the production Compose stack   |
+| `npm run prod:down`         | Stop production containers without deleting data |
+| `npm run prod:logs`         | Follow structured production container logs      |
 
 ## Development roadmap
 
@@ -252,7 +256,17 @@ Run these commands from the repository root:
 - [x] Add transaction details, editing, transfers, and guarded deletion
 - [x] Add authentication and user data isolation
 - [x] Build budgets, dashboard summaries, and reports
-- [ ] Add production deployment and monitoring
+- [x] Add production deployment and monitoring
+
+## Production operations
+
+Savent includes production client and API containers, health-gated Compose
+orchestration, automatic migration execution, structured JSON logs,
+Prometheus-compatible metrics, release image publishing, and rollback guidance.
+
+See [the production deployment runbook](docs/deployment.md) before operating an
+internet-facing instance. A live deployment requires a PostgreSQL-capable
+container host, HTTPS hostname, secrets, and backups supplied by the operator.
 
 ## Contributing
 

@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const healthResponseSchema = z.object({
   status: z.literal('ok'),
   service: z.string().min(1),
+  release: z.string().min(1).optional(),
   timestamp: z.iso.datetime(),
 });
 
@@ -13,6 +14,7 @@ export const databaseHealthResponseSchema = healthResponseSchema.extend({
 export const databaseHealthErrorSchema = z.object({
   status: z.literal('unavailable'),
   service: z.string().min(1),
+  release: z.string().min(1).optional(),
   database: z.literal('unavailable'),
   timestamp: z.iso.datetime(),
 });

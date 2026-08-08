@@ -19,7 +19,7 @@ jobs:
   validate:
     name: Validate
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       DATABASE_URL: postgresql://savent:savent@localhost:5432/savent?schema=public
     services:
@@ -73,3 +73,12 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Validate production Compose configuration
+        run: docker compose --env-file .env.production.example -f compose.production.yml config --quiet
+
+      - name: Build production client image
+        run: docker build -f apps/client/Dockerfile -t savent-client:ci .
+
+      - name: Build production server image
+        run: docker build -f apps/server/Dockerfile -t savent-server:ci .
