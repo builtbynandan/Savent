@@ -65,7 +65,40 @@ export const createTransactionSchema = transactionInputSchema.superRefine(
   },
 );
 
-export const updateTransactionSchema = transactionInputSchema.partial();
+export const updateTransactionSchema = createTransactionSchema;
+
+export const transactionSortSchema = z.enum([
+  'date_desc',
+  'date_asc',
+  'amount_desc',
+  'amount_asc',
+]);
+
+export const transactionQuerySchema = z
+  .object({
+    search: z.string().trim().max(120).default(''),
+    type: transactionTypeSchema.optional(),
+    accountId: z.uuid().optional(),
+    categoryId: z.uuid().optional(),
+    dateFrom: z.iso.date().optional(),
+    dateTo: z.iso.date().optional(),
+    page: z.coerce.number().int().positive().default(1),
+    pageSize: z.coerce.number().int().min(1).max(50).default(10),
+    sort: transactionSortSchema.default('date_desc'),
+  })
+  .superRefine((query, context) => {
+    if (query.dateFrom && query.dateTo && query.dateFrom > query.dateTo) {
+      context.addIssue({
+        code: 'custom',
+        path: ['dateTo'],
+        message: 'End date must be on or after the start date',
+      });
+    }
+  });
+
+export const transactionIdParamsSchema = z.object({
+  id: z.uuid(),
+});
 
 export const accountSummarySchema = z.object({
   id: z.uuid(),
@@ -107,6 +140,22 @@ export const transactionResponseSchema = z.object({
 
 export const transactionsResponseSchema = z.object({
   data: z.array(transactionSchema),
+  pagination: z.object({
+    page: z.number().int().positive(),
+    pageSize: z.number().int().positive(),
+    totalItems: z.number().int().nonnegative(),
+    totalPages: z.number().int().nonnegative(),
+  }),
+  summary: z.object({
+    income: z.string().regex(moneyPattern),
+    expenses: z.string().regex(moneyPattern),
+  }),
+});
+
+export const deleteTransactionResponseSchema = z.object({
+  data: z.object({
+    id: z.uuid(),
+  }),
 });
 
 export const transactionOptionsResponseSchema = z.object({
@@ -121,6 +170,8 @@ export type AccountSummary = z.infer<typeof accountSummarySchema>;
 export type CategoryKind = z.infer<typeof categoryKindSchema>;
 export type CategorySummary = z.infer<typeof categorySummarySchema>;
 export type TransactionType = z.infer<typeof transactionTypeSchema>;
+export type TransactionSort = z.infer<typeof transactionSortSchema>;
+export type TransactionQuery = z.infer<typeof transactionQuerySchema>;
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
 export type UpdateTransactionInput = z.infer<typeof updateTransactionSchema>;
 export type Transaction = z.infer<typeof transactionSchema>;
