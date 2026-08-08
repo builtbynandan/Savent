@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as dashboardApi from '../api/dashboard';
@@ -85,5 +86,53 @@ describe('Dashboard', () => {
     expect(
       screen.getByRole('heading', { name: 'Income vs spending' }),
     ).toBeInTheDocument();
+  });
+
+  it('refreshes the dashboard immediately after adding a budget', async () => {
+    const user = userEvent.setup();
+    vi.mocked(dashboardApi.createBudget).mockResolvedValue({
+      id: '3fb98485-f3d5-450d-bb55-55800fda268d',
+      category: {
+        id: groceries.id,
+        name: groceries.name,
+        color: groceries.color,
+        isArchived: false,
+      },
+      month: '2026-08',
+      amount: '3500.00',
+      spent: '145.60',
+      remaining: '3354.40',
+      percentage: 4.2,
+      status: 'on_track',
+    });
+    render(
+      <NotificationProvider>
+        <Dashboard categories={[groceries]} reloadKey={0} />
+      </NotificationProvider>,
+    );
+
+    await screen.findByText('$12,500.00');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Budget category' }),
+      groceries.id,
+    );
+    await user.type(
+      screen.getByRole('spinbutton', { name: 'Budget amount' }),
+      '3500',
+    );
+    await user.click(screen.getByRole('button', { name: 'Add budget' }));
+
+    expect(dashboardApi.createBudget).toHaveBeenCalledWith({
+      categoryId: groceries.id,
+      amount: '3500',
+      month: '2026-08',
+    });
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Budget added.',
+    );
+    expect(dashboardApi.fetchDashboard).toHaveBeenCalledTimes(2);
+    expect(
+      screen.getByRole('spinbutton', { name: 'Budget amount' }),
+    ).toHaveValue(null);
   });
 });

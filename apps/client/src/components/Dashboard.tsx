@@ -103,9 +103,10 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
 
   async function saveBudget(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setIsSaving(true);
     setBudgetError(null);
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
     const input = {
       categoryId: String(form.get('categoryId') ?? ''),
       amount: String(form.get('amount') ?? ''),
@@ -117,7 +118,7 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
       else await createBudget(input);
       notify(editing ? 'Budget updated.' : 'Budget added.');
       setEditing(null);
-      event.currentTarget.reset();
+      formElement.reset();
       setIsLoading(true);
       setLocalReloadKey((current) => current + 1);
     } catch (saveError) {
