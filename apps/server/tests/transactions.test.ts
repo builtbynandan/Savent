@@ -5,12 +5,20 @@ import {
   transactionsResponseSchema,
 } from '@savent/contracts';
 import request from 'supertest';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { app } from '../src/app.js';
 import { prisma } from '../src/lib/prisma.js';
 
 const createdTransactionIds: string[] = [];
+const authenticated = request.agent(app);
+
+beforeAll(async () => {
+  await authenticated
+    .post('/api/auth/login')
+    .send({ email: 'demo@savent.app', password: 'Demo1234!' })
+    .expect(200);
+});
 
 afterAll(async () => {
   if (createdTransactionIds.length > 0) {
@@ -24,10 +32,10 @@ afterAll(async () => {
 
 describe('transaction API', () => {
   it('lists seeded transactions and form options', async () => {
-    const transactionsResponse = await request(app)
+    const transactionsResponse = await authenticated
       .get('/api/transactions')
       .expect(200);
-    const optionsResponse = await request(app)
+    const optionsResponse = await authenticated
       .get('/api/transactions/options')
       .expect(200);
 
@@ -44,7 +52,7 @@ describe('transaction API', () => {
   });
 
   it('creates an expense and returns it in the transaction list', async () => {
-    const optionsResponse = await request(app)
+    const optionsResponse = await authenticated
       .get('/api/transactions/options')
       .expect(200);
     const options = transactionOptionsResponseSchema.parse(
@@ -58,7 +66,7 @@ describe('transaction API', () => {
     expect(account).toBeDefined();
     expect(category).toBeDefined();
 
-    const createResponse = await request(app)
+    const createResponse = await authenticated
       .post('/api/transactions')
       .send({
         type: 'expense',
@@ -81,7 +89,7 @@ describe('transaction API', () => {
       type: 'expense',
     });
 
-    const listResponse = await request(app)
+    const listResponse = await authenticated
       .get('/api/transactions')
       .expect(200);
     const listed = transactionsResponseSchema.parse(listResponse.body).data;
@@ -92,7 +100,7 @@ describe('transaction API', () => {
   });
 
   it('rejects an invalid amount with a structured error', async () => {
-    const response = await request(app)
+    const response = await authenticated
       .post('/api/transactions')
       .send({
         type: 'expense',
@@ -112,7 +120,7 @@ describe('transaction API', () => {
   });
 
   it('searches, filters, sorts, and paginates transaction history', async () => {
-    const response = await request(app)
+    const response = await authenticated
       .get('/api/transactions')
       .query({
         search: 'salary',
@@ -137,7 +145,7 @@ describe('transaction API', () => {
   });
 
   it('returns details, updates, and deletes a transaction', async () => {
-    const optionsResponse = await request(app)
+    const optionsResponse = await authenticated
       .get('/api/transactions/options')
       .expect(200);
     const options = transactionOptionsResponseSchema.parse(
@@ -148,7 +156,7 @@ describe('transaction API', () => {
       (candidate) => candidate.kind === 'expense',
     );
 
-    const createResponse = await request(app)
+    const createResponse = await authenticated
       .post('/api/transactions')
       .send({
         type: 'expense',
@@ -165,14 +173,14 @@ describe('transaction API', () => {
     const created = transactionResponseSchema.parse(createResponse.body).data;
     createdTransactionIds.push(created.id);
 
-    const detailsResponse = await request(app)
+    const detailsResponse = await authenticated
       .get(`/api/transactions/${created.id}`)
       .expect(200);
     expect(transactionResponseSchema.parse(detailsResponse.body).data.id).toBe(
       created.id,
     );
 
-    const updateResponse = await request(app)
+    const updateResponse = await authenticated
       .put(`/api/transactions/${created.id}`)
       .send({
         type: 'expense',
@@ -193,7 +201,7 @@ describe('transaction API', () => {
       amount: '18.75',
     });
 
-    await request(app).delete(`/api/transactions/${created.id}`).expect(200);
-    await request(app).get(`/api/transactions/${created.id}`).expect(404);
+    await authenticated.delete(`/api/transactions/${created.id}`).expect(200);
+    await authenticated.get(`/api/transactions/${created.id}`).expect(404);
   });
 });

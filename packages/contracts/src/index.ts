@@ -1,6 +1,18 @@
 export { apiErrorSchema, type ApiError } from './error.js';
 
 export {
+  authResponseSchema,
+  authUserSchema,
+  loginSchema,
+  logoutResponseSchema,
+  registerSchema,
+  type AuthResponse,
+  type AuthUser,
+  type LoginInput,
+  type RegisterInput,
+} from './auth.js';
+
+export {
   databaseHealthErrorSchema,
   databaseHealthResponseSchema,
   healthResponseSchema,
