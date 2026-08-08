@@ -6,18 +6,22 @@ import {
   TransactionType,
 } from '../src/generated/prisma/enums.js';
 import { prisma } from '../src/lib/prisma.js';
+import { hashPassword } from '../src/modules/auth/password.js';
 
 async function seed() {
+  const passwordHash = await hashPassword('Demo1234!');
   const user = await prisma.user.upsert({
     where: {
       email: 'demo@savent.app',
     },
     update: {
       name: 'Ava Nguyen',
+      passwordHash,
     },
     create: {
       email: 'demo@savent.app',
       name: 'Ava Nguyen',
+      passwordHash,
     },
   });
 

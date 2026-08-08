@@ -15,7 +15,6 @@ import { AppError } from '../../errors/app-error.js';
 import { prisma } from '../../lib/prisma.js';
 import { mapTransaction, transactionRelations } from './transaction.mapper.js';
 
-const demoUserEmail = 'demo@savent.app';
 const transactionTypeByContract: Record<
   ContractTransactionType,
   TransactionType
@@ -24,23 +23,6 @@ const transactionTypeByContract: Record<
   expense: TransactionType.EXPENSE,
   transfer: TransactionType.TRANSFER,
 };
-
-async function getDemoUserId() {
-  const user = await prisma.user.findUnique({
-    where: { email: demoUserEmail },
-    select: { id: true },
-  });
-
-  if (!user) {
-    throw new AppError(
-      'Run npm run db:seed to create the development user',
-      503,
-      'DEMO_USER_UNAVAILABLE',
-    );
-  }
-
-  return user.id;
-}
 
 function buildTransactionWhere(userId: string, query: TransactionQuery) {
   const conditions: Prisma.TransactionWhereInput[] = [];
@@ -98,8 +80,10 @@ function getTransactionOrderBy(query: TransactionQuery) {
   return orderBy[query.sort];
 }
 
-export async function listTransactions(query: TransactionQuery) {
-  const userId = await getDemoUserId();
+export async function listTransactions(
+  userId: string,
+  query: TransactionQuery,
+) {
   const where = buildTransactionWhere(userId, query);
   const transactions = await prisma.transaction.findMany({
     where,
@@ -139,8 +123,7 @@ export async function listTransactions(query: TransactionQuery) {
   });
 }
 
-export async function getTransaction(id: string) {
-  const userId = await getDemoUserId();
+export async function getTransaction(userId: string, id: string) {
   const transaction = await prisma.transaction.findFirst({
     where: { id, userId },
     include: transactionRelations,
@@ -153,8 +136,7 @@ export async function getTransaction(id: string) {
   return transactionResponseSchema.parse({ data: mapTransaction(transaction) });
 }
 
-export async function getTransactionOptions() {
-  const userId = await getDemoUserId();
+export async function getTransactionOptions(userId: string) {
   const accounts = await prisma.account.findMany({
     where: { userId, isArchived: false },
     orderBy: { name: 'asc' },
@@ -298,8 +280,10 @@ function transactionData(
   };
 }
 
-export async function createTransaction(input: CreateTransactionInput) {
-  const userId = await getDemoUserId();
+export async function createTransaction(
+  userId: string,
+  input: CreateTransactionInput,
+) {
   await validateTransactionReferences(userId, input);
 
   const createdTransaction = await prisma.transaction.create({
@@ -316,10 +300,10 @@ export async function createTransaction(input: CreateTransactionInput) {
 }
 
 export async function updateTransaction(
+  userId: string,
   id: string,
   input: UpdateTransactionInput,
 ) {
-  const userId = await getDemoUserId();
   const existing = await prisma.transaction.findFirst({
     where: { id, userId },
     select: { id: true },
@@ -335,11 +319,10 @@ export async function updateTransaction(
     data: transactionData(userId, input),
   });
 
-  return getTransaction(id);
+  return getTransaction(userId, id);
 }
 
-export async function deleteTransaction(id: string) {
-  const userId = await getDemoUserId();
+export async function deleteTransaction(userId: string, id: string) {
   const existing = await prisma.transaction.findFirst({
     where: { id, userId },
     select: { id: true },

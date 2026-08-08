@@ -1,10 +1,12 @@
 import {
+  type AuthUser,
   type Transaction,
   type TransactionQuery,
   type TransactionsResponse,
 } from '@savent/contracts';
 import { useEffect, useState, type FormEvent } from 'react';
 
+import { fetchCurrentUser, logout } from './api/auth';
 import {
   createTransaction,
   deleteTransaction,
@@ -13,6 +15,7 @@ import {
   updateTransaction,
 } from './api/transactions';
 import './App.css';
+import { AuthPage } from './components/AuthPage';
 import { TransactionForm } from './components/TransactionForm';
 import { TransactionList } from './components/TransactionList';
 
@@ -51,7 +54,20 @@ function formatCurrency(value: string) {
   });
 }
 
-function App() {
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+}
+
+type TransactionAppProps = {
+  user: AuthUser;
+  onSignedOut: () => void;
+};
+
+function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
   const [result, setResult] = useState<TransactionsResponse>(emptyResult);
   const [options, setOptions] = useState<Options>({
     accounts: [],
@@ -69,6 +85,7 @@ function App() {
   const [deleting, setDeleting] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -168,6 +185,20 @@ function App() {
     setPage(1);
   }
 
+  async function handleLogout() {
+    setIsSigningOut(true);
+    setLoadError(null);
+    try {
+      await logout();
+      onSignedOut();
+    } catch (error) {
+      setLoadError(
+        error instanceof Error ? error.message : 'Could not sign out.',
+      );
+      setIsSigningOut(false);
+    }
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -182,11 +213,19 @@ function App() {
           </a>
         </nav>
         <div className="profile">
-          <span className="avatar">AN</span>
+          <span className="avatar">{initials(user.name)}</span>
           <span>
-            <strong>Ava Nguyen</strong>
-            <small>Demo workspace</small>
+            <strong>{user.name}</strong>
+            <small>{user.email}</small>
           </span>
+          <button
+            className="profile-logout"
+            disabled={isSigningOut}
+            onClick={() => void handleLogout()}
+            type="button"
+          >
+            {isSigningOut ? 'Signing out…' : 'Sign out'}
+          </button>
         </div>
       </header>
 
@@ -593,6 +632,61 @@ function App() {
       ) : null}
     </div>
   );
+}
+
+function App() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchCurrentUser(controller.signal)
+      .then(setUser)
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setSessionError(
+            error instanceof Error
+              ? error.message
+              : 'Savent could not restore your session.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsRestoringSession(false);
+      });
+    return () => controller.abort();
+  }, []);
+
+  if (isRestoringSession) {
+    return (
+      <main className="session-loading" aria-live="polite">
+        <span className="brand-mark">S</span>
+        <span className="spinner" aria-hidden="true" />
+        Restoring your secure session…
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <>
+        {sessionError ? (
+          <div className="session-banner" role="alert">
+            {sessionError}
+          </div>
+        ) : null}
+        <AuthPage
+          onAuthenticated={(authenticatedUser) => {
+            setSessionError(null);
+            setUser(authenticatedUser);
+          }}
+        />
+      </>
+    );
+  }
+
+  return <TransactionApp user={user} onSignedOut={() => setUser(null)} />;
 }
 
 export default App;

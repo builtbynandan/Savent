@@ -12,6 +12,8 @@ Express API ────────┘
       │      │
       │      └──> PostgreSQL
       │
+      ├──> Session authentication middleware
+      │
       └──> HTTP error and environment boundaries
 ```
 
@@ -30,7 +32,8 @@ directly.
 ## Server boundaries
 
 - `src/config` validates process-level configuration at startup.
-- `src/middleware` owns cross-cutting HTTP behaviour such as error responses.
+- `src/middleware` owns cross-cutting HTTP behaviour such as authentication and
+  error responses.
 - `src/errors` contains application errors that can safely cross the HTTP
   boundary.
 - `src/lib` contains infrastructure clients such as Prisma.
@@ -42,11 +45,29 @@ its route, validation, service, and repository code close together. Keep
 ## Request flow
 
 1. Express receives and parses an HTTP request.
-2. A shared Zod contract validates boundary input.
-3. A feature service applies business rules.
-4. A repository uses Prisma to read or write PostgreSQL.
-5. The route validates and returns a shared response contract.
-6. Errors are translated into the common API error shape.
+2. Authentication middleware hashes the opaque session cookie and resolves its
+   unexpired database session.
+3. A shared Zod contract validates boundary input.
+4. A feature service applies business rules using the authenticated user ID.
+5. Prisma reads or writes only records owned by that user.
+6. The route validates and returns a shared response contract.
+7. Errors are translated into the common API error shape.
+
+Health and authentication entry endpoints are public. Transaction endpoints
+are mounted behind `requireAuthentication` and never select a hard-coded demo
+user. New registrations create starter accounts and categories in the same
+database transaction as the user, preventing partially prepared workspaces.
+
+## Authentication model
+
+- Passwords use Node.js `scrypt` with a unique random salt.
+- Login and registration create a 256-bit opaque session token.
+- PostgreSQL stores only the SHA-256 token hash and a seven-day expiry.
+- The raw token is sent in an HTTP-only, same-site cookie and marked secure in
+  production.
+- Logout deletes the server-side session and clears the browser cookie.
+- Foreign transaction, account, and category identifiers are treated as
+  unavailable rather than revealing ownership information.
 
 ## Quality gates
 

@@ -8,8 +8,8 @@ clear dashboards and reports.
 
 > [!NOTE]
 > Savent is currently in active development. The repository contains the
-> initial React client and Node.js API foundation; product features are being
-> built incrementally.
+> React client, Node.js API, transaction workflow, and authentication
+> foundation; product features are being built incrementally.
 
 ## Planned features
 
@@ -118,6 +118,13 @@ The frontend is normally available at
 [`http://localhost:5173`](http://localhost:5173), and the API at
 [`http://localhost:3000`](http://localhost:3000).
 
+Sign in to the seeded demo workspace with:
+
+```text
+Email:    demo@savent.app
+Password: Demo1234!
+```
+
 The generated local environment uses:
 
 ```dotenv
@@ -148,9 +155,26 @@ Check PostgreSQL connectivity:
 curl http://localhost:3000/api/health/database
 ```
 
+### Authentication API
+
+Cycle 3 adds database-backed browser sessions and user data isolation:
+
+| Method | Endpoint             | Purpose                                      |
+| ------ | -------------------- | -------------------------------------------- |
+| `POST` | `/api/auth/register` | Create a user and private starter workspace  |
+| `POST` | `/api/auth/login`    | Verify credentials and create a session      |
+| `GET`  | `/api/auth/me`       | Restore the signed-in user from their cookie |
+| `POST` | `/api/auth/logout`   | Revoke the current session                   |
+
+Passwords are hashed with `scrypt`. The browser receives an opaque, HTTP-only,
+same-site session cookie; only its SHA-256 hash is stored in PostgreSQL. All
+transaction routes require a valid session and scope reads and writes to the
+authenticated user.
+
 ### Transaction API
 
-Cycles 1 and 2 provide a complete transaction-management workflow:
+Cycles 1 and 2 provide a complete transaction-management workflow. Cycle 3
+protects every endpoint with authentication:
 
 | Method   | Endpoint                    | Purpose                                            |
 | -------- | --------------------------- | -------------------------------------------------- |
@@ -209,7 +233,7 @@ Run these commands from the repository root:
 - [x] Build transaction creation and listing end to end
 - [x] Add transaction search, filters, sorting, and pagination
 - [x] Add transaction details, editing, transfers, and guarded deletion
-- [ ] Add authentication and user data isolation
+- [x] Add authentication and user data isolation
 - [ ] Build budgets, dashboard summaries, and reports
 - [ ] Add production deployment and monitoring
 
