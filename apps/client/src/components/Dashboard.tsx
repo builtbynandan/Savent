@@ -306,6 +306,7 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
                           }
                         >
                           {budget.category.name}
+                          {budget.category.isArchived ? ' (archived)' : ''}
                         </span>
                         <strong>
                           {currency(budget.spent)} / {currency(budget.amount)}
@@ -328,12 +329,14 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
                           {currency(budget.remaining)} left
                         </small>
                         <span>
-                          <button
-                            onClick={() => setEditing(budget)}
-                            type="button"
-                          >
-                            Edit
-                          </button>
+                          {!budget.category.isArchived ? (
+                            <button
+                              onClick={() => setEditing(budget)}
+                              type="button"
+                            >
+                              Edit
+                            </button>
+                          ) : null}
                           <button
                             className="danger-link"
                             onClick={() => void removeBudget(budget)}

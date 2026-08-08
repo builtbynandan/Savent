@@ -73,6 +73,7 @@ async function budgetProgress(userId: string, month: string) {
         id: budget.category.id,
         name: budget.category.name,
         color: budget.category.color,
+        isArchived: budget.category.isArchived,
       },
       month,
       amount: money(amount),
@@ -243,7 +244,12 @@ export async function getDashboard(userId: string, query: DashboardQuery) {
 
 async function validateExpenseCategory(userId: string, categoryId: string) {
   const category = await prisma.category.findFirst({
-    where: { id: categoryId, userId, kind: CategoryKind.EXPENSE },
+    where: {
+      id: categoryId,
+      userId,
+      kind: CategoryKind.EXPENSE,
+      isArchived: false,
+    },
     select: { id: true },
   });
   if (!category) {

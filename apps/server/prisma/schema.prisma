@@ -84,6 +84,7 @@ model Category {
   color        String?       @db.VarChar(7)
   icon         String?       @db.VarChar(40)
   isSystem     Boolean       @default(false) @map("is_system")
+  isArchived   Boolean       @default(false) @map("is_archived")
   createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)

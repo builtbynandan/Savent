@@ -73,6 +73,18 @@ attached to historical transactions but are excluded from transaction forms
 and the active dashboard balance. At least one active account is required so a
 user can always record new activity.
 
+## Category lifecycle
+
+Categories are user-owned labels split into income and expense kinds. Custom
+categories may change their name, colour, and icon, while starter categories
+remain stable defaults. The kind is immutable after creation so existing
+transaction semantics and expense-budget rules cannot silently change.
+
+Categories are archived instead of deleted. Historical transactions and
+budgets retain their category relationship and remain reportable, while new
+transaction and budget validation accepts only active categories. Usage counts
+help users understand the impact before archiving a category.
+
 ## Authentication model
 
 - Passwords use Node.js `scrypt` with a unique random salt.

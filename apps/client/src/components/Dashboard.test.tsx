@@ -38,6 +38,7 @@ describe('Dashboard', () => {
               id: groceries.id,
               name: groceries.name,
               color: groceries.color,
+              isArchived: false,
             },
             month: '2026-08',
             amount: '500.00',

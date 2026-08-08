@@ -27,6 +27,7 @@ export const budgetProgressSchema = z.object({
     id: z.uuid(),
     name: z.string(),
     color: z.string().nullable(),
+    isArchived: z.boolean(),
   }),
   month: monthSchema,
   amount: z.string().regex(moneyPattern),

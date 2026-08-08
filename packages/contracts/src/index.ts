@@ -16,6 +16,22 @@ export {
 } from './account.js';
 
 export {
+  categoriesResponseSchema,
+  categoryArchiveSchema,
+  categoryIconSchema,
+  categoryIdParamsSchema,
+  categoryQuerySchema,
+  categoryResponseSchema,
+  categorySchema,
+  createCategorySchema,
+  updateCategorySchema,
+  type Category,
+  type CategoryIcon,
+  type CreateCategoryInput,
+  type UpdateCategoryInput,
+} from './category.js';
+
+export {
   authResponseSchema,
   authUserSchema,
   loginSchema,
