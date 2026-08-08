@@ -293,7 +293,12 @@ Run these commands from the repository root:
 - [x] Add production deployment and monitoring
 - [x] Add account management and per-account balances
 - [x] Add custom category management
-- [ ] Add dark mode, notifications, and accessibility refinements
+- [x] Add dark mode, notifications, and accessibility refinements
+
+Cycle 8 completes the initial product roadmap with a saved light/dark theme,
+screen-reader-friendly action notifications, skip navigation, strong keyboard
+focus indicators, focus-contained dialogs, keyboard-operable authentication
+tabs, and reduced-motion support.
 
 ## Production operations
 

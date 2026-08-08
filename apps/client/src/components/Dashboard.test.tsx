@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as dashboardApi from '../api/dashboard';
 import { Dashboard } from './Dashboard';
+import { NotificationProvider } from './Notifications';
 
 vi.mock('../api/dashboard');
 
@@ -72,7 +73,11 @@ describe('Dashboard', () => {
   });
 
   it('renders summary, budget progress, and spending reports', async () => {
-    render(<Dashboard categories={[groceries]} reloadKey={0} />);
+    render(
+      <NotificationProvider>
+        <Dashboard categories={[groceries]} reloadKey={0} />
+      </NotificationProvider>,
+    );
 
     expect(await screen.findByText('$12,500.00')).toBeInTheDocument();
     expect(screen.getAllByText('Groceries').length).toBeGreaterThanOrEqual(2);

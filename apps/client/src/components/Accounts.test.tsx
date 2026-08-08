@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as accountsApi from '../api/accounts';
 import { Accounts } from './Accounts';
+import { NotificationProvider } from './Notifications';
 
 vi.mock('../api/accounts');
 
@@ -33,7 +34,11 @@ describe('Accounts', () => {
   it('shows account balances and creates an account', async () => {
     const user = userEvent.setup();
     const onChanged = vi.fn();
-    render(<Accounts reloadKey={0} onChanged={onChanged} />);
+    render(
+      <NotificationProvider>
+        <Accounts reloadKey={0} onChanged={onChanged} />
+      </NotificationProvider>,
+    );
 
     expect(await screen.findByText('$1,250.00')).toBeInTheDocument();
     await user.type(screen.getByLabelText('Name'), 'Holiday');

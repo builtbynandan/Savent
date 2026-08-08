@@ -1,7 +1,8 @@
 import type { AuthUser, LoginInput, RegisterInput } from '@savent/contracts';
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type KeyboardEvent } from 'react';
 
 import { login, register } from '../api/auth';
+import { ThemeToggle } from './ThemeProvider';
 
 type AuthPageProps = {
   onAuthenticated: (user: AuthUser) => void;
@@ -47,8 +48,25 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
     setError(null);
   }
 
+  function handleTabKey(
+    event: KeyboardEvent<HTMLButtonElement>,
+    current: 'login' | 'register',
+  ) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    const nextMode = current === 'login' ? 'register' : 'login';
+    changeMode(nextMode);
+    document.getElementById(`${nextMode}-tab`)?.focus();
+  }
+
   return (
-    <main className="auth-shell">
+    <main className="auth-shell" id="main-content">
+      <a className="skip-link" href="#auth-title">
+        Skip to sign in
+      </a>
+      <div className="auth-theme-toggle">
+        <ThemeToggle />
+      </div>
       <section className="auth-story">
         <a className="brand auth-brand" href="/" aria-label="Savent home">
           <span className="brand-mark">S</span>
@@ -88,19 +106,27 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
           aria-label="Authentication mode"
         >
           <button
+            aria-controls="authentication-form"
             aria-selected={mode === 'login'}
             className={mode === 'login' ? 'active' : ''}
+            id="login-tab"
+            onKeyDown={(event) => handleTabKey(event, 'login')}
             onClick={() => changeMode('login')}
             role="tab"
+            tabIndex={mode === 'login' ? 0 : -1}
             type="button"
           >
             Sign in
           </button>
           <button
+            aria-controls="authentication-form"
             aria-selected={mode === 'register'}
             className={mode === 'register' ? 'active' : ''}
+            id="register-tab"
+            onKeyDown={(event) => handleTabKey(event, 'register')}
             onClick={() => changeMode('register')}
             role="tab"
+            tabIndex={mode === 'register' ? 0 : -1}
             type="button"
           >
             Register
@@ -108,8 +134,11 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
         </div>
 
         <form
+          aria-labelledby={`${mode}-tab`}
           className="auth-form"
+          id="authentication-form"
           onSubmit={(event) => void handleSubmit(event)}
+          role="tabpanel"
         >
           {mode === 'register' ? (
             <label>

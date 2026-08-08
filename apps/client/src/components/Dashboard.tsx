@@ -18,6 +18,7 @@ import {
   fetchDashboard,
   updateBudget,
 } from '../api/dashboard';
+import { useNotifications } from './notification-context';
 
 type DashboardData = DashboardResponse['data'];
 
@@ -53,6 +54,7 @@ function donutBackground(categories: DashboardData['report']['categories']) {
 }
 
 export function Dashboard({ categories, reloadKey }: DashboardProps) {
+  const { notify } = useNotifications();
   const [month, setMonth] = useState(() =>
     new Date().toISOString().slice(0, 7),
   );
@@ -113,6 +115,7 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
     try {
       if (editing) await updateBudget(editing.id, input);
       else await createBudget(input);
+      notify(editing ? 'Budget updated.' : 'Budget added.');
       setEditing(null);
       event.currentTarget.reset();
       setIsLoading(true);
@@ -133,6 +136,7 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
     setBudgetError(null);
     try {
       await deleteBudget(budget.id);
+      notify('Budget deleted.');
       if (editing?.id === budget.id) setEditing(null);
       setIsLoading(true);
       setLocalReloadKey((current) => current + 1);
@@ -178,8 +182,8 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
         </p>
       ) : null}
       {isLoading && !data ? (
-        <div className="dashboard-loading">
-          <span className="spinner" />
+        <div className="dashboard-loading" aria-live="polite">
+          <span className="spinner" aria-hidden="true" />
           Loading overview…
         </div>
       ) : null}

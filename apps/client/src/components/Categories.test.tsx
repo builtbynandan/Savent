@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as categoriesApi from '../api/categories';
 import { Categories } from './Categories';
+import { NotificationProvider } from './Notifications';
 
 vi.mock('../api/categories');
 
@@ -39,7 +40,11 @@ describe('Categories', () => {
   it('shows category usage and creates a custom category', async () => {
     const user = userEvent.setup();
     const onChanged = vi.fn();
-    render(<Categories reloadKey={0} onChanged={onChanged} />);
+    render(
+      <NotificationProvider>
+        <Categories reloadKey={0} onChanged={onChanged} />
+      </NotificationProvider>,
+    );
 
     expect(
       await screen.findByText('4 transactions · 1 budget'),
