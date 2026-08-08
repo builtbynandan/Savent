@@ -16,6 +16,7 @@ import {
 } from './api/transactions';
 import './App.css';
 import { AuthPage } from './components/AuthPage';
+import { Dashboard } from './components/Dashboard';
 import { TransactionForm } from './components/TransactionForm';
 import { TransactionList } from './components/TransactionList';
 
@@ -211,6 +212,7 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
           <a className="active" href="#transactions">
             Transactions
           </a>
+          <a href="#reports">Reports</a>
         </nav>
         <div className="profile">
           <span className="avatar">{initials(user.name)}</span>
@@ -230,7 +232,9 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
       </header>
 
       <main>
-        <section className="page-heading" id="overview">
+        <Dashboard categories={options.categories} reloadKey={reloadKey} />
+
+        <section className="page-heading" id="transactions">
           <div>
             <p className="eyebrow">Money activity</p>
             <h1>Transactions</h1>
