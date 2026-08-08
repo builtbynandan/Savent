@@ -12,6 +12,7 @@ import {
   setCategoryArchived,
   updateCategory,
 } from '../api/categories';
+import { useNotifications } from './notification-context';
 
 type CategoriesProps = {
   reloadKey: number;
@@ -43,7 +44,7 @@ function countLabel(count: number, singular: string) {
 type CategoryFormProps = {
   category: Category | null;
   onCancel: () => void;
-  onSaved: () => void;
+  onSaved: (message: string) => void;
 };
 
 function CategoryForm({ category, onCancel, onSaved }: CategoryFormProps) {
@@ -68,7 +69,7 @@ function CategoryForm({ category, onCancel, onSaved }: CategoryFormProps) {
           kind: String(form.get('kind') ?? 'expense') as CategoryKind,
         } satisfies CreateCategoryInput);
       }
-      onSaved();
+      onSaved(category ? 'Category updated.' : 'Category added.');
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -156,6 +157,7 @@ function CategoryForm({ category, onCancel, onSaved }: CategoryFormProps) {
 }
 
 export function Categories({ reloadKey, onChanged }: CategoriesProps) {
+  const { notify } = useNotifications();
   const [categories, setCategories] = useState<Category[]>([]);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
@@ -181,12 +183,13 @@ export function Categories({ reloadKey, onChanged }: CategoriesProps) {
     return () => controller.abort();
   }, [includeArchived, localReloadKey, reloadKey]);
 
-  function changed() {
+  function changed(message?: string) {
     setEditing(null);
     setError(null);
     setIsLoading(true);
     setLocalReloadKey((current) => current + 1);
     onChanged();
+    if (message) notify(message);
   }
 
   async function toggleArchived(category: Category) {
@@ -200,7 +203,9 @@ export function Categories({ reloadKey, onChanged }: CategoriesProps) {
     setError(null);
     try {
       await setCategoryArchived(category.id, !category.isArchived);
-      changed();
+      changed(
+        category.isArchived ? 'Category restored.' : 'Category archived.',
+      );
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -251,6 +256,7 @@ export function Categories({ reloadKey, onChanged }: CategoriesProps) {
                 key={category.id}
               >
                 <span
+                  aria-hidden="true"
                   className="category-icon"
                   style={{ background: category.color }}
                 >

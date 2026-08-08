@@ -131,6 +131,20 @@ The metrics endpoint can be protected with a bearer token. Production images
 run as non-root users and expose immutable release identifiers for correlation
 between deployments, health responses, metrics, and logs.
 
+## Client preferences and accessibility
+
+The client resolves its initial colour theme from a saved browser preference,
+falling back to the operating-system colour scheme, and applies the active
+theme through semantic CSS variables. Theme selection changes presentation
+only and never enters financial API requests or server-side storage.
+
+Successful mutations publish short-lived notifications through one application
+provider. Notifications use status semantics, remain manually dismissible, and
+do not replace persistent inline errors. Keyboard users receive a skip link,
+visible focus indicators, keyboard-operable tabs, and focus-contained dialogs
+that close with Escape and return focus to their trigger. Motion is reduced
+when the operating system requests it.
+
 ## Quality gates
 
 `npm run check` formats, lints, type-checks, tests, and builds every workspace.

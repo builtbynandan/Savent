@@ -19,8 +19,11 @@ import { Accounts } from './components/Accounts';
 import { AuthPage } from './components/AuthPage';
 import { Categories } from './components/Categories';
 import { Dashboard } from './components/Dashboard';
+import { useNotifications } from './components/notification-context';
+import { ThemeToggle } from './components/ThemeProvider';
 import { TransactionForm } from './components/TransactionForm';
 import { TransactionList } from './components/TransactionList';
+import { useDialogFocus } from './hooks/useDialogFocus';
 
 type Options = Awaited<ReturnType<typeof fetchTransactionOptions>>;
 type Filters = Pick<
@@ -71,6 +74,7 @@ type TransactionAppProps = {
 };
 
 function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
+  const { notify } = useNotifications();
   const [result, setResult] = useState<TransactionsResponse>(emptyResult);
   const [options, setOptions] = useState<Options>({
     accounts: [],
@@ -89,6 +93,15 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const viewingDialogRef = useDialogFocus(Boolean(viewing), () =>
+    setViewing(null),
+  );
+  const editingDialogRef = useDialogFocus(Boolean(editing), () =>
+    setEditing(null),
+  );
+  const deletingDialogRef = useDialogFocus(Boolean(deleting), () =>
+    setDeleting(null),
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -141,6 +154,7 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
 
   async function handleCreate(input: Parameters<typeof createTransaction>[0]) {
     await createTransaction(input);
+    notify('Transaction added.');
     setPage(1);
     refreshTransactions();
   }
@@ -148,6 +162,7 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
   async function handleUpdate(input: Parameters<typeof updateTransaction>[1]) {
     if (!editing) return;
     await updateTransaction(editing.id, input);
+    notify('Transaction updated.');
     setEditing(null);
     refreshTransactions();
   }
@@ -158,6 +173,7 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
     setDeleteError(null);
     try {
       await deleteTransaction(deleting.id);
+      notify('Transaction deleted.');
       setDeleting(null);
       if (result.data.length === 1 && page > 1) changePage(page - 1);
       else refreshTransactions();
@@ -193,6 +209,7 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
     setLoadError(null);
     try {
       await logout();
+      notify('You have signed out.');
       onSignedOut();
     } catch (error) {
       setLoadError(
@@ -204,6 +221,9 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">
+        Skip to main content
+      </a>
       <header className="topbar">
         <a className="brand" href="/" aria-label="Savent home">
           <span className="brand-mark">S</span>
@@ -219,8 +239,9 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
           <a href="#reports">Reports</a>
         </nav>
         <div className="profile">
+          <ThemeToggle compact />
           <span className="avatar">{initials(user.name)}</span>
-          <span>
+          <span className="profile-details">
             <strong>{user.name}</strong>
             <small>{user.email}</small>
           </span>
@@ -235,7 +256,7 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
         </div>
       </header>
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <Dashboard categories={options.categories} reloadKey={reloadKey} />
 
         <Accounts reloadKey={reloadKey} onChanged={refreshTransactions} />
@@ -507,7 +528,9 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
             aria-labelledby="details-title"
             aria-modal="true"
             className="modal-card details-modal"
+            ref={viewingDialogRef}
             role="dialog"
+            tabIndex={-1}
           >
             <div className="modal-heading">
               <div>
@@ -588,7 +611,9 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
             aria-label="Edit transaction"
             aria-modal="true"
             className="modal-card edit-modal"
+            ref={editingDialogRef}
             role="dialog"
+            tabIndex={-1}
           >
             <TransactionForm
               key={editing.id}
@@ -608,7 +633,9 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
             aria-labelledby="delete-title"
             aria-modal="true"
             className="modal-card confirm-modal"
+            ref={deletingDialogRef}
             role="alertdialog"
+            tabIndex={-1}
           >
             <p className="eyebrow">Confirm deletion</p>
             <h2 id="delete-title">Delete “{deleting.description}”?</h2>

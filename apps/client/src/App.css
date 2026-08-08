@@ -2,9 +2,27 @@
   min-height: 100vh;
 }
 
+.skip-link {
+  background: var(--ink);
+  border-radius: 0 0 8px 8px;
+  color: var(--background);
+  font-weight: 750;
+  left: 16px;
+  padding: 10px 14px;
+  position: fixed;
+  top: 0;
+  transform: translateY(-130%);
+  transition: transform 0.15s ease;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 .topbar {
   align-items: center;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--topbar);
   border-bottom: 1px solid var(--border);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -65,7 +83,7 @@
   justify-self: end;
 }
 
-.profile > span:nth-child(2) {
+.profile-details {
   display: flex;
   flex-direction: column;
 }
@@ -98,6 +116,33 @@
 .profile-logout:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.theme-toggle {
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 750;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
+.theme-toggle:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+}
+
+.theme-toggle.compact {
+  font-size: 1rem;
+  justify-content: center;
+  padding: 7px;
+  width: 38px;
 }
 
 .avatar {
@@ -156,7 +201,7 @@ main {
 }
 
 .summary-cards article {
-  background: white;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
   display: flex;
@@ -340,7 +385,7 @@ main {
 
 .category-manager-card {
   align-items: center;
-  background: white;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
   display: grid;
@@ -425,7 +470,7 @@ main {
 
 .filter-panel {
   align-items: end;
-  background: white;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 18px;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.04);
@@ -447,7 +492,7 @@ main {
 
 .filter-panel input,
 .filter-panel select {
-  background: white;
+  background: var(--input);
   border: 1px solid var(--border-strong);
   border-radius: 9px;
   color: var(--ink);
@@ -473,7 +518,7 @@ main {
 }
 
 .panel {
-  background: white;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 20px;
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.055);
@@ -671,7 +716,7 @@ main {
 }
 
 .type-switcher input:checked + span {
-  background: white;
+  background: var(--card);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
   color: var(--brand-dark);
 }
@@ -718,7 +763,7 @@ main {
 .field input,
 .field select,
 .field textarea {
-  background: white;
+  background: var(--input);
   border: 1px solid var(--border-strong);
   border-radius: 9px;
   box-sizing: border-box;
@@ -786,7 +831,7 @@ main {
 .danger-button,
 .icon-button,
 .row-actions button {
-  background: white;
+  background: var(--card);
   border: 1px solid var(--border-strong);
   border-radius: 9px;
   color: var(--body);
@@ -866,7 +911,7 @@ main {
 
 .modal-backdrop {
   align-items: center;
-  background: rgba(15, 23, 42, 0.52);
+  background: var(--overlay);
   display: flex;
   inset: 0;
   justify-content: center;
@@ -876,7 +921,7 @@ main {
 }
 
 .modal-card {
-  background: white;
+  background: var(--card);
   border-radius: 20px;
   box-shadow: 0 28px 80px rgba(15, 23, 42, 0.24);
   max-height: calc(100vh - 40px);
@@ -1043,6 +1088,70 @@ main {
   text-align: center;
 }
 
+.notification-region {
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: min(390px, calc(100vw - 32px));
+  pointer-events: none;
+  position: fixed;
+  right: 24px;
+  width: 100%;
+  z-index: 100;
+}
+
+.notification {
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-left: 4px solid var(--positive);
+  border-radius: 12px;
+  box-shadow: 0 16px 38px var(--shadow);
+  color: var(--ink);
+  display: grid;
+  gap: 11px;
+  grid-template-columns: auto 1fr auto;
+  padding: 13px 14px;
+  pointer-events: auto;
+}
+
+.notification.error {
+  border-left-color: var(--danger);
+}
+
+.notification > span {
+  align-items: center;
+  background: var(--positive-soft);
+  border-radius: 50%;
+  color: var(--positive);
+  display: flex;
+  font-weight: 850;
+  height: 25px;
+  justify-content: center;
+  width: 25px;
+}
+
+.notification.error > span {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.notification p {
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.notification button {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 5px;
+}
+
 .auth-shell {
   align-items: stretch;
   display: grid;
@@ -1051,6 +1160,13 @@ main {
   max-width: none;
   min-height: 100vh;
   padding: 0;
+}
+
+.auth-theme-toggle {
+  position: fixed;
+  right: 24px;
+  top: 22px;
+  z-index: 5;
 }
 
 .auth-story {
@@ -1089,7 +1205,7 @@ main {
 }
 
 .auth-brand .brand-mark {
-  background: white;
+  background: var(--card);
   color: var(--brand-dark);
 }
 
@@ -1185,7 +1301,7 @@ main {
 }
 
 .auth-tabs button.active {
-  background: white;
+  background: var(--card);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
   color: var(--brand-dark);
 }
@@ -1206,7 +1322,7 @@ main {
 }
 
 .auth-form input {
-  background: white;
+  background: var(--input);
   border: 1px solid var(--border-strong);
   border-radius: 10px;
   color: var(--ink);
@@ -1272,7 +1388,7 @@ main {
 }
 
 .month-picker input {
-  background: white;
+  background: var(--input);
   border: 1px solid var(--border-strong);
   border-radius: 10px;
   color: var(--ink);
@@ -1296,7 +1412,7 @@ main {
 }
 
 .kpi-grid article {
-  background: white;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 17px;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.04);
@@ -1336,7 +1452,7 @@ main {
 }
 
 .dashboard-card {
-  background: white;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 20px;
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.05);
@@ -1374,6 +1490,7 @@ main {
 
 .budget-form input,
 .budget-form select {
+  background: var(--input);
   border: 1px solid var(--border-strong);
   border-radius: 9px;
   color: var(--ink);
@@ -1564,7 +1681,7 @@ main {
 }
 
 .spending-donut::after {
-  background: white;
+  background: var(--card);
   border-radius: 50%;
   content: '';
   height: 98px;
@@ -1698,8 +1815,18 @@ main {
     padding: 0 16px;
   }
 
-  .profile > span:nth-child(2) {
+  .profile-details {
     display: none;
+  }
+
+  .profile-logout {
+    margin-left: 0;
+    padding: 5px;
+  }
+
+  .notification-region {
+    bottom: 16px;
+    right: 16px;
   }
 
   .auth-story {

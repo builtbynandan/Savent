@@ -11,6 +11,7 @@ import {
   setAccountArchived,
   updateAccount,
 } from '../api/accounts';
+import { useNotifications } from './notification-context';
 
 type AccountsProps = {
   reloadKey: number;
@@ -36,7 +37,7 @@ function formatMoney(account: Account, value: string) {
 type AccountFormProps = {
   account: Account | null;
   onCancel: () => void;
-  onSaved: () => void;
+  onSaved: (message: string) => void;
 };
 
 function AccountForm({ account, onCancel, onSaved }: AccountFormProps) {
@@ -57,7 +58,7 @@ function AccountForm({ account, onCancel, onSaved }: AccountFormProps) {
     try {
       if (account) await updateAccount(account.id, input);
       else await createAccount(input);
-      onSaved();
+      onSaved(account ? 'Account updated.' : 'Account added.');
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -142,6 +143,7 @@ function AccountForm({ account, onCancel, onSaved }: AccountFormProps) {
 }
 
 export function Accounts({ reloadKey, onChanged }: AccountsProps) {
+  const { notify } = useNotifications();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
@@ -167,12 +169,13 @@ export function Accounts({ reloadKey, onChanged }: AccountsProps) {
     return () => controller.abort();
   }, [includeArchived, localReloadKey, reloadKey]);
 
-  function changed() {
+  function changed(message?: string) {
     setEditing(null);
     setError(null);
     setIsLoading(true);
     setLocalReloadKey((current) => current + 1);
     onChanged();
+    if (message) notify(message);
   }
 
   async function toggleArchived(account: Account) {
@@ -187,7 +190,7 @@ export function Accounts({ reloadKey, onChanged }: AccountsProps) {
     setError(null);
     try {
       await setAccountArchived(account.id, !account.isArchived);
-      changed();
+      changed(account.isArchived ? 'Account restored.' : 'Account archived.');
     } catch (caught) {
       setError(
         caught instanceof Error

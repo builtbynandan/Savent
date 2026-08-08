@@ -4,6 +4,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as authApi from '../api/auth';
 import { AuthPage } from './AuthPage';
+import { ThemeProvider } from './ThemeProvider';
+
+function renderAuthPage(
+  onAuthenticated: Parameters<typeof AuthPage>[0]['onAuthenticated'],
+) {
+  return render(
+    <ThemeProvider>
+      <AuthPage onAuthenticated={onAuthenticated} />
+    </ThemeProvider>,
+  );
+}
 
 vi.mock('../api/auth');
 
@@ -18,7 +29,7 @@ describe('AuthPage', () => {
       name: 'Ava Nguyen',
       email: 'demo@savent.app',
     });
-    render(<AuthPage onAuthenticated={onAuthenticated} />);
+    renderAuthPage(onAuthenticated);
 
     await user.type(screen.getByLabelText('Email'), 'demo@savent.app');
     await user.type(screen.getByLabelText('Password'), 'Demo1234!');
@@ -40,9 +51,11 @@ describe('AuthPage', () => {
       name: 'Nandan',
       email: 'nandan@example.com',
     });
-    render(<AuthPage onAuthenticated={vi.fn()} />);
+    renderAuthPage(vi.fn());
 
-    await user.click(screen.getByRole('tab', { name: 'Register' }));
+    screen.getByRole('tab', { name: 'Sign in' }).focus();
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('tab', { name: 'Register' })).toHaveFocus();
     await user.type(screen.getByLabelText('Name'), 'Nandan');
     await user.type(screen.getByLabelText('Email'), 'nandan@example.com');
     await user.type(screen.getByLabelText('Password'), 'strong-password');
