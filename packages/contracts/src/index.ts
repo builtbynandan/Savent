@@ -1,6 +1,21 @@
 export { apiErrorSchema, type ApiError } from './error.js';
 
 export {
+  accountArchiveSchema,
+  accountIdParamsSchema,
+  accountInputSchema,
+  accountQuerySchema,
+  accountResponseSchema,
+  accountSchema,
+  accountsResponseSchema,
+  createAccountSchema,
+  updateAccountSchema,
+  type Account,
+  type CreateAccountInput,
+  type UpdateAccountInput,
+} from './account.js';
+
+export {
   authResponseSchema,
   authUserSchema,
   loginSchema,
