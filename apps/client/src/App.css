@@ -76,6 +76,10 @@
   color: var(--brand-dark);
 }
 
+.topbar nav a:focus-visible {
+  outline-offset: 2px;
+}
+
 .profile {
   align-items: center;
   display: flex;
@@ -161,7 +165,7 @@
 main {
   margin: 0 auto;
   max-width: 1240px;
-  padding: 54px 24px 72px;
+  padding: 42px 24px 64px;
 }
 
 .page-heading {
@@ -183,7 +187,7 @@ main {
 .page-heading h1 {
   color: var(--ink);
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(2.3rem, 5vw, 3.7rem);
+  font-size: clamp(2.15rem, 4vw, 3rem);
   font-weight: 500;
   letter-spacing: -0.04em;
   line-height: 1;
@@ -238,7 +242,7 @@ main {
   margin-bottom: 20px;
 }
 
-.section-heading h2 {
+.section-heading h1 {
   color: var(--ink);
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 2rem;
@@ -278,16 +282,17 @@ main {
 }
 
 .account-card {
-  background: linear-gradient(145deg, #173f30, #2d7355);
-  border-radius: 18px;
-  box-shadow: 0 14px 32px rgba(23, 63, 48, 0.16);
-  color: rgba(255, 255, 255, 0.72);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(23, 63, 48, 0.06);
+  color: var(--muted);
   min-height: 190px;
   padding: 20px;
 }
 
 .account-card.archived {
-  background: #64748b;
+  background: var(--surface);
   box-shadow: none;
   opacity: 0.82;
 }
@@ -307,20 +312,24 @@ main {
   text-transform: uppercase;
 }
 
+.account-type {
+  color: var(--brand-dark);
+}
+
 .archived-label {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--surface);
   border-radius: 999px;
   padding: 5px 8px;
 }
 
 .account-card h3 {
-  color: white;
+  color: var(--ink);
   font-size: 1rem;
   margin: 24px 0 4px;
 }
 
 .account-card > strong {
-  color: white;
+  color: var(--ink);
   display: block;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 1.75rem;
@@ -329,6 +338,7 @@ main {
 }
 
 .account-card > small {
+  color: var(--muted);
   display: block;
   font-size: 0.7rem;
   margin-top: 3px;
@@ -341,14 +351,7 @@ main {
 }
 
 .account-actions button {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: white;
   padding: 7px 10px;
-}
-
-.account-actions button:hover {
-  background: rgba(255, 255, 255, 0.2);
 }
 
 .account-form-panel {
@@ -387,7 +390,7 @@ main {
   align-items: center;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 13px;
   display: grid;
   gap: 13px;
   grid-template-columns: auto minmax(0, 1fr);
@@ -468,11 +471,15 @@ main {
   grid-template-columns: minmax(0, 1.65fr) minmax(330px, 0.75fr);
 }
 
+.content-grid > * {
+  min-width: 0;
+}
+
 .filter-panel {
   align-items: end;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 14px;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.04);
   display: grid;
   gap: 14px;
@@ -520,8 +527,8 @@ main {
 .panel {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.055);
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
 .panel-heading,
@@ -922,7 +929,7 @@ main {
 
 .modal-card {
   background: var(--card);
-  border-radius: 20px;
+  border-radius: 15px;
   box-shadow: 0 28px 80px rgba(15, 23, 42, 0.24);
   max-height: calc(100vh - 40px);
   max-width: 560px;
@@ -1352,7 +1359,7 @@ main {
 }
 
 .dashboard-section {
-  margin-bottom: 70px;
+  margin-bottom: 48px;
   scroll-margin-top: 94px;
 }
 
@@ -1366,7 +1373,7 @@ main {
 .dashboard-heading h1 {
   color: var(--ink);
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-size: clamp(2.25rem, 4vw, 3.2rem);
   font-weight: 500;
   letter-spacing: -0.045em;
   line-height: 1;
@@ -1414,8 +1421,8 @@ main {
 .kpi-grid article {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 17px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.04);
+  border-radius: 13px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.035);
   display: flex;
   flex-direction: column;
   padding: 20px;
@@ -1451,11 +1458,15 @@ main {
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
 }
 
+.dashboard-grid.single-view {
+  grid-template-columns: 1fr;
+}
+
 .dashboard-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.05);
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
   padding: 24px;
 }
 
@@ -1753,10 +1764,35 @@ main {
 @media (max-width: 940px) {
   .topbar {
     grid-template-columns: 1fr auto;
+    height: auto;
+    min-height: 72px;
+    padding-bottom: 8px;
+  }
+
+  .topbar .brand,
+  .topbar .profile {
+    grid-row: 1;
+  }
+
+  .topbar .profile {
+    grid-column: 2;
   }
 
   .topbar nav {
+    display: flex;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    overflow-x: auto;
+    padding-top: 4px;
+    scrollbar-width: none;
+  }
+
+  .topbar nav::-webkit-scrollbar {
     display: none;
+  }
+
+  .topbar nav a {
+    flex: 0 0 auto;
   }
 
   .content-grid {
@@ -1781,11 +1817,11 @@ main {
   }
 
   .account-form-panel {
-    grid-row: 1;
+    grid-row: auto;
   }
 
   .category-form-panel {
-    grid-row: 1;
+    grid-row: auto;
   }
 
   .auth-shell {
@@ -1811,8 +1847,23 @@ main {
 
 @media (max-width: 680px) {
   .topbar {
-    height: 64px;
+    min-height: 64px;
     padding: 0 16px;
+    padding-bottom: 8px;
+  }
+
+  .topbar nav {
+    gap: 2px;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .topbar nav a {
+    flex: 1 1 auto;
+    font-size: 0.68rem;
+    min-width: 0;
+    padding: 8px 3px;
+    text-align: center;
   }
 
   .profile-details {

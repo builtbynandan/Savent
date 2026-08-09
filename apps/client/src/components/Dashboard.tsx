@@ -18,6 +18,7 @@ import {
   fetchDashboard,
   updateBudget,
 } from '../api/dashboard';
+import { ConfirmDialog } from './ConfirmDialog';
 import { useNotifications } from './notification-context';
 
 type DashboardData = DashboardResponse['data'];
@@ -25,6 +26,7 @@ type DashboardData = DashboardResponse['data'];
 type DashboardProps = {
   categories: CategorySummary[];
   reloadKey: number;
+  view?: 'overview' | 'reports';
 };
 
 function currency(value: string) {
@@ -53,7 +55,11 @@ function donutBackground(categories: DashboardData['report']['categories']) {
   return `conic-gradient(${segments.join(', ')})`;
 }
 
-export function Dashboard({ categories, reloadKey }: DashboardProps) {
+export function Dashboard({
+  categories,
+  reloadKey,
+  view = 'overview',
+}: DashboardProps) {
   const { notify } = useNotifications();
   const [month, setMonth] = useState(() =>
     new Date().toISOString().slice(0, 7),
@@ -65,6 +71,9 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
   const [editing, setEditing] = useState<BudgetProgress | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [localReloadKey, setLocalReloadKey] = useState(0);
+  const [deletingBudget, setDeletingBudget] = useState<BudgetProgress | null>(
+    null,
+  );
 
   const expenseCategories = categories.filter(
     (category) => category.kind === 'expense',
@@ -73,7 +82,10 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
   useEffect(() => {
     const controller = new AbortController();
     fetchDashboard(month, controller.signal)
-      .then(setData)
+      .then((nextData) => {
+        setData(nextData);
+        setError(null);
+      })
       .catch((loadError: unknown) => {
         if (!controller.signal.aborted) {
           setError(
@@ -88,6 +100,13 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
       });
     return () => controller.abort();
   }, [month, reloadKey, localReloadKey]);
+
+  function retryDashboard() {
+    setData(null);
+    setError(null);
+    setIsLoading(true);
+    setLocalReloadKey((current) => current + 1);
+  }
 
   const chartMaximum = useMemo(
     () =>
@@ -133,11 +152,12 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
   }
 
   async function removeBudget(budget: BudgetProgress) {
-    if (!window.confirm(`Delete the ${budget.category.name} budget?`)) return;
+    setIsSaving(true);
     setBudgetError(null);
     try {
       await deleteBudget(budget.id);
       notify('Budget deleted.');
+      setDeletingBudget(null);
       if (editing?.id === budget.id) setEditing(null);
       setIsLoading(true);
       setLocalReloadKey((current) => current + 1);
@@ -147,20 +167,30 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
           ? deleteError.message
           : 'The budget could not be deleted.',
       );
+    } finally {
+      setIsSaving(false);
     }
   }
 
   return (
     <section
       className="dashboard-section"
-      id="overview"
+      id={view}
       aria-labelledby="dashboard-title"
     >
       <div className="dashboard-heading">
         <div>
-          <p className="eyebrow">Financial overview</p>
-          <h1 id="dashboard-title">Your month at a glance</h1>
-          <p>Track progress, spot trends and stay ahead of your spending.</p>
+          <p className="eyebrow">
+            {view === 'overview' ? 'Financial overview' : 'Reporting'}
+          </p>
+          <h1 id="dashboard-title">
+            {view === 'overview' ? 'Your month at a glance' : 'Money insights'}
+          </h1>
+          <p>
+            {view === 'overview'
+              ? 'Track progress, spot trends and stay ahead of your spending.'
+              : 'Compare income, spending and category patterns over time.'}
+          </p>
         </div>
         <label className="month-picker">
           <span>Reporting month</span>
@@ -168,6 +198,7 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
             aria-label="Reporting month"
             onChange={(event) => {
               setIsLoading(true);
+              setData(null);
               setError(null);
               setMonth(event.target.value);
             }}
@@ -178,9 +209,17 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
       </div>
 
       {error ? (
-        <p className="load-error" role="alert">
-          {error}
-        </p>
+        <div className="load-error" role="alert">
+          <strong>We couldn’t load this report.</strong>
+          <span>{error}</span>
+          <button
+            className="secondary-button"
+            onClick={retryDashboard}
+            type="button"
+          >
+            Try again
+          </button>
+        </div>
       ) : null}
       {isLoading && !data ? (
         <div className="dashboard-loading" aria-live="polite">
@@ -225,215 +264,228 @@ export function Dashboard({ categories, reloadKey }: DashboardProps) {
             </article>
           </div>
 
-          <div className="dashboard-grid">
-            <section
-              className="dashboard-card budget-card"
-              aria-labelledby="budget-title"
-            >
-              <div className="dashboard-card-heading">
-                <div>
-                  <p className="eyebrow">Monthly plan</p>
-                  <h2 id="budget-title">Category budgets</h2>
-                </div>
-                <span>{currency(data.budgets.remaining)} remaining</span>
-              </div>
-
-              <form
-                className="budget-form"
-                onSubmit={(event) => void saveBudget(event)}
+          <div className="dashboard-grid single-view">
+            {view === 'overview' ? (
+              <section
+                className="dashboard-card budget-card"
+                aria-labelledby="budget-title"
               >
-                <select
-                  aria-label="Budget category"
-                  defaultValue={editing?.category.id ?? ''}
-                  key={editing?.id ?? 'new'}
-                  name="categoryId"
-                  required
-                >
-                  <option disabled value="">
-                    Choose category
-                  </option>
-                  {expenseCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  aria-label="Budget amount"
-                  defaultValue={editing?.amount ?? ''}
-                  key={`${editing?.id ?? 'new'}-amount`}
-                  min="0.01"
-                  name="amount"
-                  placeholder="Amount"
-                  required
-                  step="0.01"
-                  type="number"
-                />
-                <button
-                  className="primary-button"
-                  disabled={isSaving}
-                  type="submit"
-                >
-                  {isSaving ? 'Saving…' : editing ? 'Update' : 'Add budget'}
-                </button>
-                {editing ? (
-                  <button
-                    className="secondary-button"
-                    onClick={() => setEditing(null)}
-                    type="button"
-                  >
-                    Cancel
-                  </button>
-                ) : null}
-              </form>
-              {budgetError ? (
-                <p className="form-error" role="alert">
-                  {budgetError}
-                </p>
-              ) : null}
-
-              <div className="budget-list">
-                {data.budgets.items.length === 0 ? (
-                  <div className="compact-empty">
-                    No budgets for {monthLabel(data.month)} yet.
+                <div className="dashboard-card-heading">
+                  <div>
+                    <p className="eyebrow">Monthly plan</p>
+                    <h2 id="budget-title">Category budgets</h2>
                   </div>
-                ) : (
-                  data.budgets.items.map((budget) => (
-                    <article key={budget.id} className="budget-row">
-                      <div className="budget-row-heading">
-                        <span
-                          className="category-pill"
-                          style={
-                            {
-                              '--category-color':
-                                budget.category.color ?? '#94A3B8',
-                            } as CSSProperties
-                          }
+                  <span>{currency(data.budgets.remaining)} remaining</span>
+                </div>
+
+                <form
+                  className="budget-form"
+                  onSubmit={(event) => void saveBudget(event)}
+                >
+                  <select
+                    aria-label="Budget category"
+                    defaultValue={editing?.category.id ?? ''}
+                    key={editing?.id ?? 'new'}
+                    name="categoryId"
+                    required
+                  >
+                    <option disabled value="">
+                      Choose category
+                    </option>
+                    {expenseCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    aria-label="Budget amount"
+                    defaultValue={editing?.amount ?? ''}
+                    key={`${editing?.id ?? 'new'}-amount`}
+                    min="0.01"
+                    name="amount"
+                    placeholder="Amount"
+                    required
+                    step="0.01"
+                    type="number"
+                  />
+                  <button
+                    className="primary-button"
+                    disabled={isSaving}
+                    type="submit"
+                  >
+                    {isSaving ? 'Saving…' : editing ? 'Update' : 'Add budget'}
+                  </button>
+                  {editing ? (
+                    <button
+                      className="secondary-button"
+                      onClick={() => setEditing(null)}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                  ) : null}
+                </form>
+                {budgetError ? (
+                  <p className="form-error" role="alert">
+                    {budgetError}
+                  </p>
+                ) : null}
+
+                <div className="budget-list">
+                  {data.budgets.items.length === 0 ? (
+                    <div className="compact-empty">
+                      No budgets for {monthLabel(data.month)} yet.
+                    </div>
+                  ) : (
+                    data.budgets.items.map((budget) => (
+                      <article key={budget.id} className="budget-row">
+                        <div className="budget-row-heading">
+                          <span
+                            className="category-pill"
+                            style={
+                              {
+                                '--category-color':
+                                  budget.category.color ?? '#94A3B8',
+                              } as CSSProperties
+                            }
+                          >
+                            {budget.category.name}
+                            {budget.category.isArchived ? ' (archived)' : ''}
+                          </span>
+                          <strong>
+                            {currency(budget.spent)} / {currency(budget.amount)}
+                          </strong>
+                        </div>
+                        <div
+                          className="budget-track"
+                          aria-label={`${budget.percentage}% used`}
                         >
-                          {budget.category.name}
-                          {budget.category.isArchived ? ' (archived)' : ''}
-                        </span>
-                        <strong>
-                          {currency(budget.spent)} / {currency(budget.amount)}
-                        </strong>
-                      </div>
-                      <div
-                        className="budget-track"
-                        aria-label={`${budget.percentage}% used`}
-                      >
-                        <span
-                          className={budget.status}
-                          style={{
-                            width: `${Math.min(budget.percentage, 100)}%`,
-                          }}
-                        />
-                      </div>
-                      <div className="budget-row-footer">
-                        <small>
-                          {budget.percentage.toFixed(1)}% used ·{' '}
-                          {currency(budget.remaining)} left
-                        </small>
-                        <span>
-                          {!budget.category.isArchived ? (
+                          <span
+                            className={budget.status}
+                            style={{
+                              width: `${Math.min(budget.percentage, 100)}%`,
+                            }}
+                          />
+                        </div>
+                        <div className="budget-row-footer">
+                          <small>
+                            {budget.percentage.toFixed(1)}% used ·{' '}
+                            {currency(budget.remaining)} left
+                          </small>
+                          <span>
+                            {!budget.category.isArchived ? (
+                              <button
+                                onClick={() => setEditing(budget)}
+                                type="button"
+                              >
+                                Edit
+                              </button>
+                            ) : null}
                             <button
-                              onClick={() => setEditing(budget)}
+                              className="danger-link"
+                              onClick={() => setDeletingBudget(budget)}
                               type="button"
                             >
-                              Edit
+                              Delete
                             </button>
-                          ) : null}
-                          <button
-                            className="danger-link"
-                            onClick={() => void removeBudget(budget)}
-                            type="button"
-                          >
-                            Delete
-                          </button>
-                        </span>
-                      </div>
-                    </article>
-                  ))
-                )}
-              </div>
-            </section>
-
-            <section
-              className="dashboard-card report-card"
-              id="reports"
-              aria-labelledby="trend-title"
-            >
-              <div className="dashboard-card-heading">
-                <div>
-                  <p className="eyebrow">Six-month report</p>
-                  <h2 id="trend-title">Income vs spending</h2>
-                </div>
-              </div>
-              <div
-                className="trend-chart"
-                aria-label="Six month income and expense chart"
-              >
-                {data.report.monthly.map((item) => (
-                  <div className="trend-column" key={item.month}>
-                    <div className="trend-bars">
-                      <span
-                        className="income-bar"
-                        title={`${item.label} income ${currency(item.income)}`}
-                        style={{
-                          height: `${(Number(item.income) / chartMaximum) * 100}%`,
-                        }}
-                      />
-                      <span
-                        className="expense-bar"
-                        title={`${item.label} expenses ${currency(item.expenses)}`}
-                        style={{
-                          height: `${(Number(item.expenses) / chartMaximum) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <small>{item.label}</small>
-                  </div>
-                ))}
-              </div>
-              <div className="chart-legend">
-                <span className="income-key">Income</span>
-                <span className="expense-key">Expenses</span>
-              </div>
-
-              <div className="category-report">
-                <div
-                  className="spending-donut"
-                  style={{
-                    background: donutBackground(data.report.categories),
-                  }}
-                >
-                  <span>
-                    <strong>{currency(data.summary.expenses)}</strong>
-                    <small>Total spent</small>
-                  </span>
-                </div>
-                <div className="category-breakdown">
-                  <h3>Spending by category</h3>
-                  {data.report.categories.length === 0 ? (
-                    <p className="muted">No expenses this month.</p>
-                  ) : (
-                    data.report.categories.map((category) => (
-                      <div key={category.categoryId ?? category.name}>
-                        <span>
-                          <i style={{ background: category.color }} />
-                          {category.name}
-                        </span>
-                        <strong>
-                          {currency(category.amount)}{' '}
-                          <small>{category.percentage.toFixed(1)}%</small>
-                        </strong>
-                      </div>
+                          </span>
+                        </div>
+                      </article>
                     ))
                   )}
                 </div>
-              </div>
-            </section>
+              </section>
+            ) : null}
+
+            {view === 'reports' ? (
+              <section
+                className="dashboard-card report-card"
+                aria-labelledby="trend-title"
+              >
+                <div className="dashboard-card-heading">
+                  <div>
+                    <p className="eyebrow">Six-month report</p>
+                    <h2 id="trend-title">Income vs spending</h2>
+                  </div>
+                </div>
+                <div
+                  className="trend-chart"
+                  aria-label="Six month income and expense chart"
+                >
+                  {data.report.monthly.map((item) => (
+                    <div className="trend-column" key={item.month}>
+                      <div className="trend-bars">
+                        <span
+                          className="income-bar"
+                          title={`${item.label} income ${currency(item.income)}`}
+                          style={{
+                            height: `${(Number(item.income) / chartMaximum) * 100}%`,
+                          }}
+                        />
+                        <span
+                          className="expense-bar"
+                          title={`${item.label} expenses ${currency(item.expenses)}`}
+                          style={{
+                            height: `${(Number(item.expenses) / chartMaximum) * 100}%`,
+                          }}
+                        />
+                      </div>
+                      <small>{item.label}</small>
+                    </div>
+                  ))}
+                </div>
+                <div className="chart-legend">
+                  <span className="income-key">Income</span>
+                  <span className="expense-key">Expenses</span>
+                </div>
+
+                <div className="category-report">
+                  <div
+                    className="spending-donut"
+                    style={{
+                      background: donutBackground(data.report.categories),
+                    }}
+                  >
+                    <span>
+                      <strong>{currency(data.summary.expenses)}</strong>
+                      <small>Total spent</small>
+                    </span>
+                  </div>
+                  <div className="category-breakdown">
+                    <h3>Spending by category</h3>
+                    {data.report.categories.length === 0 ? (
+                      <p className="muted">No expenses this month.</p>
+                    ) : (
+                      data.report.categories.map((category) => (
+                        <div key={category.categoryId ?? category.name}>
+                          <span>
+                            <i style={{ background: category.color }} />
+                            {category.name}
+                          </span>
+                          <strong>
+                            {currency(category.amount)}{' '}
+                            <small>{category.percentage.toFixed(1)}%</small>
+                          </strong>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </section>
+            ) : null}
           </div>
         </>
+      ) : null}
+      {deletingBudget ? (
+        <ConfirmDialog
+          body="This removes the monthly budget target. Existing transactions and categories are not affected."
+          confirmLabel="Delete budget"
+          isBusy={isSaving}
+          onCancel={() => setDeletingBudget(null)}
+          onConfirm={() => void removeBudget(deletingBudget)}
+          title={`Delete the ${deletingBudget.category.name} budget?`}
+        />
       ) : null}
     </section>
   );

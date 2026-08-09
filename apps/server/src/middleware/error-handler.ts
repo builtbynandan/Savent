@@ -4,6 +4,7 @@ import { ZodError } from 'zod';
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 
 import { AppError } from '../errors/app-error.js';
+import { Prisma } from '../generated/prisma/client.js';
 import { logger } from '../lib/logger.js';
 
 export const notFoundHandler: RequestHandler = (request, response) => {
@@ -48,6 +49,21 @@ export const errorHandler: ErrorRequestHandler = (
     });
 
     response.status(400).json(body);
+    return;
+  }
+
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002'
+  ) {
+    const body = apiErrorSchema.parse({
+      error: {
+        code: 'RESOURCE_ALREADY_EXISTS',
+        message: 'A record with these details already exists',
+      },
+    });
+
+    response.status(409).json(body);
     return;
   }
 

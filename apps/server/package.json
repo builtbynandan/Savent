@@ -1,7 +1,7 @@
 {
   "name": "@savent/server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Authenticated REST API for the Savent personal finance application",
   "scripts": {
     "predev": "npm run build --workspace=@savent/contracts && npm run db:generate",
     "dev": "tsx watch src/server.ts",

@@ -41,6 +41,24 @@ const starterCategories = [
     icon: 'train',
   },
   { name: 'Rent', kind: CategoryKind.EXPENSE, color: '#7C3AED', icon: 'house' },
+  {
+    name: 'Utilities',
+    kind: CategoryKind.EXPENSE,
+    color: '#0F766E',
+    icon: 'receipt',
+  },
+  {
+    name: 'Health',
+    kind: CategoryKind.EXPENSE,
+    color: '#DB2777',
+    icon: 'heart',
+  },
+  {
+    name: 'Subscriptions',
+    kind: CategoryKind.EXPENSE,
+    color: '#9333EA',
+    icon: 'film',
+  },
 ] as const;
 
 function tokenHash(token: string) {

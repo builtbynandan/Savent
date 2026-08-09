@@ -2,318 +2,189 @@
 
 **Know where every dollar goes.**
 
-Savent is a full-stack personal finance application for tracking income and
-expenses, managing monthly budgets, and understanding spending habits through
-clear dashboards and reports.
+Savent is a full-stack personal finance application for recording income,
+expenses, and transfers; managing accounts and categories; setting monthly
+budgets; and understanding spending through focused reports.
 
-> [!NOTE]
-> Savent is currently in active development. The repository contains the
-> React client, Node.js API, transaction workflow, and authentication
-> foundation; product features are being built incrementally.
+The project is a complete portfolio V1. It combines a responsive React client,
+an authenticated Node.js API, PostgreSQL persistence, shared runtime contracts,
+automated tests, and production container workflows in one repository.
 
-## Planned features
+## Product capabilities
 
-- Secure account registration and authentication
-- Bank, cash, savings, credit, and investment account management
-- Income, expense, and transfer tracking
-- Transaction search, filtering, sorting, and categorisation
-- Monthly category budgets with progress indicators
-- Dashboard summaries for balance, income, expenses, and savings rate
-- Spending trends and category reports
-- Responsive light and dark interfaces
-- Demo data for exploring the application
+- Private registration, sign-in, sign-out, and session restoration
+- Checking, savings, cash, credit, investment, and custom account management
+- Income, expense, and transfer creation, editing, details, and deletion
+- Transaction search, filters, sorting, pagination, and filtered totals
+- Custom income and expense categories with archive-safe history
+- Monthly category budgets with on-track, near-limit, and over-budget states
+- Balance, income, expense, savings-rate, six-month, and category reporting
+- Responsive light and dark themes with keyboard and screen-reader support
+- A deterministic demo workspace with realistic six-month activity
 
-## Technology
+## Engineering highlights
 
-### Client
+- **User isolation:** every financial query is scoped to the authenticated user,
+  including related accounts, categories, budgets, and transfers.
+- **Secure sessions:** passwords use Node.js `scrypt`; browsers receive an
+  opaque HTTP-only, same-site cookie while PostgreSQL stores only a SHA-256
+  token hash. Authentication endpoints are rate limited.
+- **Exact money handling:** PostgreSQL `Decimal(14,2)` values remain Prisma
+  Decimal values through balance and dashboard aggregation. Account histories
+  are summarized by bounded database aggregate queries.
+- **Shared contracts:** Zod schemas in `@savent/contracts` validate request and
+  response shapes on both sides of the API boundary.
+- **Operational readiness:** production images run as non-root users, migrations
+  execute as a one-shot release task, services are health gated, and the API
+  exposes structured logs, liveness/readiness checks, and protected metrics.
+- **Quality gates:** GitHub Actions verifies formatting, linting, types, tests,
+  builds, production Compose configuration, and both Docker images.
 
-- React
-- TypeScript
-- Vite
-- ESLint
+## Stack
 
-### Server
+| Area     | Technology                                                    |
+| -------- | ------------------------------------------------------------- |
+| Client   | React 19, TypeScript, Vite 8                                  |
+| API      | Node.js 24, Express 5, TypeScript, Zod, Helmet                |
+| Data     | PostgreSQL 18, Prisma 7                                       |
+| Testing  | Vitest, Testing Library, Supertest                            |
+| Tooling  | npm workspaces, ESLint, Prettier, Docker Compose              |
+| Delivery | GitHub Actions, GHCR images, SBOM and provenance attestations |
 
-- Node.js
-- Express
-- TypeScript
-- Zod
-- Helmet
+## Architecture
 
-### Data
-
-- PostgreSQL
-- Prisma ORM
-
-### Development quality
-
-- Vitest and Supertest
-- ESLint and Prettier
-- Docker Compose
-- GitHub Actions
-
-## Repository structure
-
-Savent uses npm workspaces to keep the frontend, backend, and future shared
-packages in one repository.
+```text
+Browser (React + shared contracts)
+        │ credentialed JSON over /api
+        ▼
+Express API
+  ├─ security, CORS, rate limits, request IDs
+  ├─ authentication and ownership middleware
+  ├─ accounts, categories, transactions, budgets, reports
+  └─ structured errors, health checks, metrics
+        │ Prisma with exact Decimal values
+        ▼
+PostgreSQL
+```
 
 ```text
 Savent/
 ├── apps/
-│   ├── client/              # React and Vite frontend
-│   └── server/              # Node.js and Express REST API
-│       ├── prisma/           # Schema, migrations, and seed data
-│       ├── src/
-│       │   ├── app.ts       # Express application and middleware
-│       │   └── server.ts    # API process entry point
-│       └── .env.example
-├── packages/
-│   └── contracts/          # Shared Zod schemas and TypeScript types
-├── docs/
-│   └── architecture.md      # System boundaries and request flow
-├── scripts/
-│   └── setup-env.mjs        # Safe local environment bootstrap
-├── .github/                 # CI, Dependabot, and pull request template
-├── .gitignore
-├── package-lock.json
-├── package.json             # Root npm workspace configuration
-└── README.md
+│   ├── client/             # React application and component tests
+│   └── server/             # Express API, Prisma schema, migrations, tests
+├── packages/contracts/     # Shared Zod schemas and TypeScript types
+├── docs/                   # Architecture, deployment, and rollback guidance
+├── scripts/                # Safe local environment bootstrap
+├── .github/                # CI, release, Dependabot, and PR configuration
+├── compose.production.yml  # Health-gated production topology
+└── docker-compose.yml      # Local PostgreSQL service
 ```
 
-## Getting started
+See [docs/architecture.md](docs/architecture.md) for system boundaries and
+[docs/deployment.md](docs/deployment.md) for the production runbook.
+
+## Run locally
 
 ### Requirements
 
-- Node.js 24 LTS recommended
+- Node.js 24
 - npm
-- Git
 - Docker Desktop
+- Git
 
-### Quick setup
-
-Clone the repository:
+Clone and prepare the complete development environment:
 
 ```bash
 git clone https://github.com/builtbynandan/Savent.git
 cd Savent
 nvm use
-```
-
-Install dependencies, create the local environment file, start PostgreSQL,
-apply migrations, and load demo data:
-
-```bash
 npm run setup
 ```
 
-`npm run setup` is safe to run again. It preserves an existing `.env` file and
-uses the committed migrations and deterministic seed data.
+`npm run setup` installs dependencies, preserves an existing local `.env`,
+starts PostgreSQL, applies committed migrations, and restores deterministic
+demo data. It is safe to run again.
 
-Start the frontend and API together:
+Start the client and API together:
 
 ```bash
 npm run dev
 ```
 
-The frontend is normally available at
-[`http://localhost:5173`](http://localhost:5173), and the API at
-[`http://localhost:3000`](http://localhost:3000).
+- Client: [http://localhost:5173](http://localhost:5173)
+- API: [http://localhost:3000](http://localhost:3000)
 
-Sign in to the seeded demo workspace with:
+Demo credentials:
 
 ```text
 Email:    demo@savent.app
 Password: Demo1234!
 ```
 
-The generated local environment uses:
+## Verification
 
-```dotenv
-PORT=3000
-CLIENT_URL=http://localhost:5173
-DATABASE_URL=postgresql://savent:savent@localhost:5432/savent?schema=public
-```
-
-Check the health endpoint:
+Run the same primary quality gate used by CI:
 
 ```bash
-curl http://localhost:3000/api/health
+npm run check
 ```
 
-Example response:
+The suite covers shared contracts, authentication and ownership boundaries,
+account balances, categories, transactions, budgets, dashboard calculations,
+health endpoints, client interactions, notifications, themes, and dialog focus.
 
-```json
-{
-  "status": "ok",
-  "service": "savent-api",
-  "timestamp": "2026-01-01T00:00:00.000Z"
-}
-```
-
-Check PostgreSQL connectivity:
+Production dependency vulnerabilities can be checked with:
 
 ```bash
-curl http://localhost:3000/api/health/database
+npm audit --omit=dev
 ```
 
-### Authentication API
+## Commands
 
-Cycle 3 adds database-backed browser sessions and user data isolation:
+| Command                                 | Purpose                                                    |
+| --------------------------------------- | ---------------------------------------------------------- |
+| `npm run setup`                         | Prepare dependencies, environment, database, and demo data |
+| `npm run dev`                           | Start the client and API in watch mode                     |
+| `npm run check`                         | Run formatting, linting, types, tests, and builds          |
+| `npm test`                              | Run all automated tests                                    |
+| `npm run db:up` / `npm run db:down`     | Start or stop local PostgreSQL                             |
+| `npm run db:migrate`                    | Create and apply a development migration                   |
+| `npm run db:migrate:deploy`             | Apply committed migrations                                 |
+| `npm run db:seed`                       | Restore the deterministic demo workspace                   |
+| `npm run prod:build`                    | Build production client and API images                     |
+| `npm run prod:up` / `npm run prod:down` | Start or stop the production stack                         |
+| `npm run prod:logs`                     | Follow production container logs                           |
 
-| Method | Endpoint             | Purpose                                      |
-| ------ | -------------------- | -------------------------------------------- |
-| `POST` | `/api/auth/register` | Create a user and private starter workspace  |
-| `POST` | `/api/auth/login`    | Verify credentials and create a session      |
-| `GET`  | `/api/auth/me`       | Restore the signed-in user from their cookie |
-| `POST` | `/api/auth/logout`   | Revoke the current session                   |
+## API surface
 
-Passwords are hashed with `scrypt`. The browser receives an opaque, HTTP-only,
-same-site session cookie; only its SHA-256 hash is stored in PostgreSQL. All
-transaction routes require a valid session and scope reads and writes to the
-authenticated user.
+All financial routes require a valid browser session.
 
-### Transaction API
+| Area           | Endpoints                                                              |
+| -------------- | ---------------------------------------------------------------------- |
+| Authentication | `POST /api/auth/register`, `POST /login`, `GET /me`, `POST /logout`    |
+| Accounts       | `GET/POST /api/accounts`, `PUT /:id`, `PATCH /:id/archive`             |
+| Categories     | `GET/POST /api/categories`, `PUT /:id`, `PATCH /:id/archive`           |
+| Transactions   | `GET/POST /api/transactions`, `GET/PUT/DELETE /:id`, `GET /options`    |
+| Dashboard      | `GET /api/dashboard`, `POST /budgets`, `PUT/DELETE /budgets/:id`       |
+| Operations     | liveness, readiness, database health, and protected Prometheus metrics |
 
-Cycles 1 and 2 provide a complete transaction-management workflow. Cycle 3
-protects every endpoint with authentication:
+Transaction lists accept search, type, account, category, date range, sort,
+page, and page-size parameters. API responses use stable shared schemas and
+structured error codes.
 
-| Method   | Endpoint                    | Purpose                                            |
-| -------- | --------------------------- | -------------------------------------------------- |
-| `GET`    | `/api/transactions`         | Search, filter, sort, and paginate transactions    |
-| `GET`    | `/api/transactions/options` | List accounts and categories for forms and filters |
-| `GET`    | `/api/transactions/:id`     | Retrieve one transaction's details                 |
-| `POST`   | `/api/transactions`         | Validate and create income, expenses, or transfers |
-| `PUT`    | `/api/transactions/:id`     | Validate and replace an existing transaction       |
-| `DELETE` | `/api/transactions/:id`     | Permanently remove a transaction owned by the user |
+## Production notes
 
-The list endpoint accepts `search`, `type`, `accountId`, `categoryId`,
-`dateFrom`, `dateTo`, `sort`, `page`, and `pageSize` query parameters. Its
-response includes filtered income and expense totals plus pagination metadata.
+Savent’s production Compose topology contains a private PostgreSQL service, a
+one-shot migration container, a health-gated API, and an Nginx-served client.
+A real internet deployment still requires operator-provided HTTPS termination,
+secrets, backups, monitoring storage, and a PostgreSQL-capable container host.
 
-The React transaction screen consumes these endpoints and shares its request
-and response schemas with the API through `@savent/contracts`.
-
-### Account API
-
-Cycle 6 exposes user-owned accounts and calculates each balance from its
-opening balance, income, expenses, and transfers:
-
-| Method  | Endpoint                    | Purpose                                    |
-| ------- | --------------------------- | ------------------------------------------ |
-| `GET`   | `/api/accounts`             | List active accounts and current balances  |
-| `POST`  | `/api/accounts`             | Create a financial account                 |
-| `PUT`   | `/api/accounts/:id`         | Update account details and opening balance |
-| `PATCH` | `/api/accounts/:id/archive` | Archive or restore an account              |
-
-Pass `includeArchived=true` to include closed accounts. Archiving preserves
-transaction history and removes the account from new transaction forms. Savent
-keeps at least one account active for every user.
-New accounts are currently AUD-only so dashboard totals never combine values
-from currencies without an exchange-rate conversion.
-
-### Dashboard and budget API
-
-Cycle 4 adds monthly planning and reporting behind the same authenticated user
-boundary:
-
-| Method   | Endpoint                       | Purpose                                     |
-| -------- | ------------------------------ | ------------------------------------------- |
-| `GET`    | `/api/dashboard?month=YYYY-MM` | KPIs, budget progress, and spending reports |
-| `POST`   | `/api/dashboard/budgets`       | Create a monthly expense-category budget    |
-| `PUT`    | `/api/dashboard/budgets/:id`   | Update a user-owned budget                  |
-| `DELETE` | `/api/dashboard/budgets/:id`   | Delete a user-owned budget                  |
-
-The dashboard calculates current balance, monthly income and expenses, savings
-rate, budget usage, six-month income-versus-expense trends, and category
-spending. Budget progress moves through on-track, near-limit, and over-budget
-states using actual transactions for the selected month.
-
-### Category API
-
-Cycle 7 adds safe category customisation behind the authenticated user boundary:
-
-| Method  | Endpoint                      | Purpose                                         |
-| ------- | ----------------------------- | ----------------------------------------------- |
-| `GET`   | `/api/categories`             | List categories and their usage counts          |
-| `POST`  | `/api/categories`             | Create a custom income or expense category      |
-| `PUT`   | `/api/categories/:id`         | Edit a custom category's name, colour, and icon |
-| `PATCH` | `/api/categories/:id/archive` | Archive or restore a category                   |
-
-Archiving removes a category from new transaction and budget forms while
-preserving every historical relationship. Starter categories can be archived
-or restored, but only custom categories can be renamed or redesigned.
-
-Stop PostgreSQL when you are finished:
-
-```bash
-npm run db:down
-```
-
-## Available commands
-
-Run these commands from the repository root:
-
-| Command                     | Purpose                                          |
-| --------------------------- | ------------------------------------------------ |
-| `npm run setup`             | Prepare a complete local development environment |
-| `npm run dev`               | Start the client and API together                |
-| `npm run dev:client`        | Start the React development server               |
-| `npm run dev:server`        | Start the API in watch mode                      |
-| `npm run check`             | Run every local and CI quality gate              |
-| `npm test`                  | Run all automated tests                          |
-| `npm run lint`              | Lint every workspace                             |
-| `npm run format`            | Format the repository with Prettier              |
-| `npm run typecheck`         | Type-check every workspace                       |
-| `npm run build`             | Build all workspaces                             |
-| `npm run db:up`             | Start PostgreSQL with Docker Compose             |
-| `npm run db:down`           | Stop PostgreSQL                                  |
-| `npm run db:generate`       | Generate the Prisma Client                       |
-| `npm run db:migrate`        | Create and apply development migrations          |
-| `npm run db:migrate:deploy` | Apply existing migrations                        |
-| `npm run db:seed`           | Load deterministic demo data                     |
-| `npm run db:studio`         | Open Prisma Studio                               |
-| `npm run prod:build`        | Build production client and API containers       |
-| `npm run prod:up`           | Migrate and start the production Compose stack   |
-| `npm run prod:down`         | Stop production containers without deleting data |
-| `npm run prod:logs`         | Follow structured production container logs      |
-
-## Development roadmap
-
-- [x] Establish the React and Express workspace foundation
-- [x] Add shared Zod API contracts
-- [x] Configure PostgreSQL and Prisma
-- [x] Add continuous integration
-- [x] Add automated contract and API tests
-- [x] Add formatting, linting, environment validation, and contributor tooling
-- [x] Build transaction creation and listing end to end
-- [x] Add transaction search, filters, sorting, and pagination
-- [x] Add transaction details, editing, transfers, and guarded deletion
-- [x] Add authentication and user data isolation
-- [x] Build budgets, dashboard summaries, and reports
-- [x] Add production deployment and monitoring
-- [x] Add account management and per-account balances
-- [x] Add custom category management
-- [x] Add dark mode, notifications, and accessibility refinements
-
-Cycle 8 completes the initial product roadmap with a saved light/dark theme,
-screen-reader-friendly action notifications, skip navigation, strong keyboard
-focus indicators, focus-contained dialogs, keyboard-operable authentication
-tabs, and reduced-motion support.
-
-## Production operations
-
-Savent includes production client and API containers, health-gated Compose
-orchestration, automatic migration execution, structured JSON logs,
-Prometheus-compatible metrics, release image publishing, and rollback guidance.
-
-See [the production deployment runbook](docs/deployment.md) before operating an
-internet-facing instance. A live deployment requires a PostgreSQL-capable
-container host, HTTPS hostname, secrets, and backups supplied by the operator.
+Current product boundaries are deliberate: balances are AUD-only, bank feeds
+are not connected, and financial data is entered manually. Savent is a
+portfolio application, not financial advice or a regulated banking product.
 
 ## Contributing
 
-Savent is currently an early-stage portfolio project. Bug reports, suggestions,
-and focused pull requests are welcome through
-[GitHub Issues](https://github.com/builtbynandan/Savent/issues). See
-[CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and
-[docs/architecture.md](docs/architecture.md) for the system design.
+Focused issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md)
+before starting and keep changes scoped, tested, and free of local environment
+files or secrets.

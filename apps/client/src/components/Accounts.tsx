@@ -11,6 +11,7 @@ import {
   setAccountArchived,
   updateAccount,
 } from '../api/accounts';
+import { ConfirmDialog } from './ConfirmDialog';
 import { useNotifications } from './notification-context';
 
 type AccountsProps = {
@@ -150,11 +151,16 @@ export function Accounts({ reloadKey, onChanged }: AccountsProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [localReloadKey, setLocalReloadKey] = useState(0);
+  const [pendingArchive, setPendingArchive] = useState<Account | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
     fetchAccounts(includeArchived, controller.signal)
-      .then(setAccounts)
+      .then((nextAccounts) => {
+        setAccounts(nextAccounts);
+        setError(null);
+      })
       .catch((caught: unknown) => {
         if (!controller.signal.aborted)
           setError(
@@ -180,16 +186,11 @@ export function Accounts({ reloadKey, onChanged }: AccountsProps) {
 
   async function toggleArchived(account: Account) {
     const action = account.isArchived ? 'restore' : 'archive';
-    if (
-      !account.isArchived &&
-      !window.confirm(
-        `Archive ${account.name}? Existing transactions will be preserved.`,
-      )
-    )
-      return;
+    setIsArchiving(true);
     setError(null);
     try {
       await setAccountArchived(account.id, !account.isArchived);
+      setPendingArchive(null);
       changed(account.isArchived ? 'Account restored.' : 'Account archived.');
     } catch (caught) {
       setError(
@@ -197,6 +198,8 @@ export function Accounts({ reloadKey, onChanged }: AccountsProps) {
           ? caught.message
           : `Could not ${action} the account.`,
       );
+    } finally {
+      setIsArchiving(false);
     }
   }
 
@@ -205,7 +208,7 @@ export function Accounts({ reloadKey, onChanged }: AccountsProps) {
       <div className="section-heading">
         <div>
           <p className="eyebrow">Your money</p>
-          <h2>Accounts</h2>
+          <h1>Accounts</h1>
           <p>
             Track each balance and keep transaction history when an account
             closes.
@@ -224,9 +227,21 @@ export function Accounts({ reloadKey, onChanged }: AccountsProps) {
         </label>
       </div>
       {error ? (
-        <p className="load-error" role="alert">
-          {error}
-        </p>
+        <div className="load-error" role="alert">
+          <strong>We couldn’t load your accounts.</strong>
+          <span>{error}</span>
+          <button
+            className="secondary-button"
+            onClick={() => {
+              setError(null);
+              setIsLoading(true);
+              setLocalReloadKey((current) => current + 1);
+            }}
+            type="button"
+          >
+            Try again
+          </button>
+        </div>
       ) : null}
       <div className="accounts-layout">
         <div className="account-list" aria-live="polite">
@@ -234,6 +249,10 @@ export function Accounts({ reloadKey, onChanged }: AccountsProps) {
             <div className="loading-state">
               <span className="spinner" aria-hidden="true" />
               Loading accounts…
+            </div>
+          ) : accounts.length === 0 ? (
+            <div className="compact-empty">
+              No accounts match this view yet.
             </div>
           ) : (
             accounts.map((account) => (
@@ -264,7 +283,10 @@ export function Accounts({ reloadKey, onChanged }: AccountsProps) {
                   </button>
                   <button
                     className="secondary-button"
-                    onClick={() => void toggleArchived(account)}
+                    onClick={() => {
+                      if (account.isArchived) void toggleArchived(account);
+                      else setPendingArchive(account);
+                    }}
                     type="button"
                   >
                     {account.isArchived ? 'Restore' : 'Archive'}
@@ -283,6 +305,16 @@ export function Accounts({ reloadKey, onChanged }: AccountsProps) {
           />
         </aside>
       </div>
+      {pendingArchive ? (
+        <ConfirmDialog
+          body="Its transaction history and balances will be preserved, and you can restore it later."
+          confirmLabel="Archive account"
+          isBusy={isArchiving}
+          onCancel={() => setPendingArchive(null)}
+          onConfirm={() => void toggleArchived(pendingArchive)}
+          title={`Archive ${pendingArchive.name}?`}
+        />
+      ) : null}
     </section>
   );
 }

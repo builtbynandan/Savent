@@ -37,11 +37,11 @@ describe('dashboard API', () => {
 
     expect(dashboard.summary).toMatchObject({
       income: '3300.00',
-      expenses: '2056.10',
-      savings: '1243.90',
-      transactionCount: 5,
+      expenses: '2340.84',
+      savings: '959.16',
+      transactionCount: 9,
     });
-    expect(dashboard.budgets.items).toHaveLength(4);
+    expect(dashboard.budgets.items).toHaveLength(6);
     expect(dashboard.report.monthly).toHaveLength(6);
     expect(dashboard.report.categories[0]).toMatchObject({
       name: 'Rent',

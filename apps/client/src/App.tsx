@@ -7,6 +7,7 @@ import {
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { fetchCurrentUser, logout } from './api/auth';
+import { sessionExpiredEvent } from './api/client';
 import {
   createTransaction,
   deleteTransaction,
@@ -53,6 +54,23 @@ const emptyResult: TransactionsResponse = {
   summary: { income: '0.00', expenses: '0.00' },
 };
 
+const navigationItems = [
+  ['overview', 'Overview'],
+  ['accounts', 'Accounts'],
+  ['categories', 'Categories'],
+  ['transactions', 'Transactions'],
+  ['reports', 'Reports'],
+] as const;
+
+type AppSection = (typeof navigationItems)[number][0];
+
+function sectionFromLocation(): AppSection {
+  const hash = window.location.hash.slice(1);
+  return navigationItems.some(([section]) => section === hash)
+    ? (hash as AppSection)
+    : 'overview';
+}
+
 function formatCurrency(value: string) {
   return Number(value).toLocaleString('en-AU', {
     style: 'currency',
@@ -93,6 +111,7 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [activeSection, setActiveSection] = useState(sectionFromLocation);
   const viewingDialogRef = useDialogFocus(Boolean(viewing), () =>
     setViewing(null),
   );
@@ -102,6 +121,12 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
   const deletingDialogRef = useDialogFocus(Boolean(deleting), () =>
     setDeleting(null),
   );
+
+  useEffect(() => {
+    const updateActiveSection = () => setActiveSection(sectionFromLocation());
+    window.addEventListener('hashchange', updateActiveSection);
+    return () => window.removeEventListener('hashchange', updateActiveSection);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -120,10 +145,14 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
   }, [reloadKey]);
 
   useEffect(() => {
+    if (activeSection !== 'transactions') return;
     const controller = new AbortController();
 
     fetchTransactions({ ...filters, page, pageSize }, controller.signal)
-      .then(setResult)
+      .then((nextResult) => {
+        setResult(nextResult);
+        setLoadError(null);
+      })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
           setLoadError(
@@ -138,7 +167,7 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
       });
 
     return () => controller.abort();
-  }, [filters, page, pageSize, reloadKey]);
+  }, [activeSection, filters, page, pageSize, reloadKey]);
 
   function refreshTransactions() {
     setIsLoading(true);
@@ -225,18 +254,21 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
         Skip to main content
       </a>
       <header className="topbar">
-        <a className="brand" href="/" aria-label="Savent home">
+        <a className="brand" href="#overview" aria-label="Savent home">
           <span className="brand-mark">S</span>
           <span>Savent</span>
         </a>
         <nav aria-label="Primary navigation">
-          <a href="#overview">Overview</a>
-          <a href="#accounts">Accounts</a>
-          <a href="#categories">Categories</a>
-          <a className="active" href="#transactions">
-            Transactions
-          </a>
-          <a href="#reports">Reports</a>
+          {navigationItems.map(([section, label]) => (
+            <a
+              aria-current={activeSection === section ? 'page' : undefined}
+              className={activeSection === section ? 'active' : undefined}
+              href={`#${section}`}
+              key={section}
+            >
+              {label}
+            </a>
+          ))}
         </nav>
         <div className="profile">
           <ThemeToggle compact />
@@ -257,263 +289,287 @@ function TransactionApp({ user, onSignedOut }: TransactionAppProps) {
       </header>
 
       <main id="main-content" tabIndex={-1}>
-        <Dashboard categories={options.categories} reloadKey={reloadKey} />
-
-        <Accounts reloadKey={reloadKey} onChanged={refreshTransactions} />
-
-        <Categories reloadKey={reloadKey} onChanged={refreshTransactions} />
-
-        <section className="page-heading" id="transactions">
-          <div>
-            <p className="eyebrow">Money activity</p>
-            <h1>Transactions</h1>
-            <p>
-              Search, review and manage every dollar moving through your
-              accounts.
-            </p>
-          </div>
-          <div
-            className="summary-cards"
-            aria-label="Filtered transaction summary"
-          >
-            <article>
-              <span>Income</span>
-              <strong className="positive">
-                +{formatCurrency(result.summary.income)}
-              </strong>
-            </article>
-            <article>
-              <span>Expenses</span>
-              <strong>-{formatCurrency(result.summary.expenses)}</strong>
-            </article>
-          </div>
-        </section>
-
-        {loadError ? (
-          <section className="load-error" role="alert">
-            <strong>We couldn’t load your transactions.</strong>
-            <span>{loadError}</span>
-          </section>
+        {activeSection === 'overview' || activeSection === 'reports' ? (
+          <Dashboard
+            categories={options.categories}
+            reloadKey={reloadKey}
+            view={activeSection === 'reports' ? 'reports' : 'overview'}
+          />
         ) : null}
 
-        <form
-          className="filter-panel"
-          onSubmit={applyFilters}
-          aria-label="Transaction filters"
-        >
-          <label className="filter-search">
-            <span>Search</span>
-            <input
-              placeholder="Description or notes"
-              value={draftFilters.search}
-              onChange={(event) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  search: event.target.value,
-                }))
-              }
-            />
-          </label>
-          <label>
-            <span>Type</span>
-            <select
-              value={draftFilters.type ?? ''}
-              onChange={(event) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  type: (event.target.value || undefined) as Filters['type'],
-                }))
-              }
-            >
-              <option value="">All types</option>
-              <option value="expense">Expenses</option>
-              <option value="income">Income</option>
-              <option value="transfer">Transfers</option>
-            </select>
-          </label>
-          <label>
-            <span>Account</span>
-            <select
-              value={draftFilters.accountId ?? ''}
-              onChange={(event) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  accountId: event.target.value || undefined,
-                }))
-              }
-            >
-              <option value="">All accounts</option>
-              {options.accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Category</span>
-            <select
-              value={draftFilters.categoryId ?? ''}
-              onChange={(event) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  categoryId: event.target.value || undefined,
-                }))
-              }
-            >
-              <option value="">All categories</option>
-              {options.categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>From</span>
-            <input
-              type="date"
-              value={draftFilters.dateFrom ?? ''}
-              onChange={(event) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  dateFrom: event.target.value || undefined,
-                }))
-              }
-            />
-          </label>
-          <label>
-            <span>To</span>
-            <input
-              type="date"
-              value={draftFilters.dateTo ?? ''}
-              onChange={(event) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  dateTo: event.target.value || undefined,
-                }))
-              }
-            />
-          </label>
-          <label>
-            <span>Sort</span>
-            <select
-              value={draftFilters.sort}
-              onChange={(event) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  sort: event.target.value as Filters['sort'],
-                }))
-              }
-            >
-              <option value="date_desc">Newest first</option>
-              <option value="date_asc">Oldest first</option>
-              <option value="amount_desc">Highest amount</option>
-              <option value="amount_asc">Lowest amount</option>
-            </select>
-          </label>
-          <div className="filter-actions">
-            <button
-              className="secondary-button"
-              onClick={clearFilters}
-              type="button"
-            >
-              Clear
-            </button>
-            <button className="primary-button" type="submit">
-              Apply filters
-            </button>
-          </div>
-        </form>
+        {activeSection === 'accounts' ? (
+          <Accounts reloadKey={reloadKey} onChanged={refreshTransactions} />
+        ) : null}
 
-        <div className="content-grid" id="transactions">
-          <section className="panel transaction-panel">
-            <div className="panel-heading">
+        {activeSection === 'categories' ? (
+          <Categories reloadKey={reloadKey} onChanged={refreshTransactions} />
+        ) : null}
+
+        {activeSection === 'transactions' ? (
+          <>
+            <section className="page-heading" id="transactions">
               <div>
-                <p className="eyebrow">Activity</p>
-                <h2>Transaction history</h2>
+                <p className="eyebrow">Money activity</p>
+                <h1>Transactions</h1>
+                <p>
+                  Search, review and manage every dollar moving through your
+                  accounts.
+                </p>
               </div>
-              <span className="record-count">
-                {result.pagination.totalItems}{' '}
-                {result.pagination.totalItems === 1 ? 'record' : 'records'}
-              </span>
-            </div>
-            {isLoading ? (
-              <div className="loading-state" aria-live="polite">
-                <span className="spinner" aria-hidden="true" />
-                Loading transactions…
+              <div
+                className="summary-cards"
+                aria-label="Filtered transaction summary"
+              >
+                <article>
+                  <span>Income</span>
+                  <strong className="positive">
+                    +{formatCurrency(result.summary.income)}
+                  </strong>
+                </article>
+                <article>
+                  <span>Expenses</span>
+                  <strong>-{formatCurrency(result.summary.expenses)}</strong>
+                </article>
               </div>
-            ) : (
-              <TransactionList
-                transactions={result.data}
-                onView={setViewing}
-                onEdit={setEditing}
-                onDelete={(transaction) => {
-                  setDeleteError(null);
-                  setDeleting(transaction);
-                }}
-              />
-            )}
-            <div className="pagination" aria-label="Transaction pages">
-              <label>
-                Rows{' '}
-                <select
-                  value={pageSize}
-                  onChange={(event) => {
-                    setIsLoading(true);
-                    setLoadError(null);
-                    setPageSize(Number(event.target.value));
-                    setPage(1);
-                  }}
+            </section>
+
+            {loadError ? (
+              <section className="load-error" role="alert">
+                <strong>We couldn’t load your transactions.</strong>
+                <span>{loadError}</span>
+                <button
+                  className="secondary-button"
+                  onClick={refreshTransactions}
+                  type="button"
                 >
-                  <option value="5">5</option>
-                  <option value="10">10</option>
-                  <option value="20">20</option>
+                  Try again
+                </button>
+              </section>
+            ) : null}
+
+            <form
+              className="filter-panel"
+              onSubmit={applyFilters}
+              aria-label="Transaction filters"
+            >
+              <label className="filter-search">
+                <span>Search</span>
+                <input
+                  placeholder="Description or notes"
+                  value={draftFilters.search}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      search: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                <span>Type</span>
+                <select
+                  value={draftFilters.type ?? ''}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      type: (event.target.value ||
+                        undefined) as Filters['type'],
+                    }))
+                  }
+                >
+                  <option value="">All types</option>
+                  <option value="expense">Expenses</option>
+                  <option value="income">Income</option>
+                  <option value="transfer">Transfers</option>
                 </select>
               </label>
-              <span>
-                Page{' '}
-                {result.pagination.totalPages === 0
-                  ? 0
-                  : result.pagination.page}{' '}
-                of {result.pagination.totalPages}
-              </span>
-              <div>
+              <label>
+                <span>Account</span>
+                <select
+                  value={draftFilters.accountId ?? ''}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      accountId: event.target.value || undefined,
+                    }))
+                  }
+                >
+                  <option value="">All accounts</option>
+                  {options.accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Category</span>
+                <select
+                  value={draftFilters.categoryId ?? ''}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      categoryId: event.target.value || undefined,
+                    }))
+                  }
+                >
+                  <option value="">All categories</option>
+                  {options.categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>From</span>
+                <input
+                  type="date"
+                  value={draftFilters.dateFrom ?? ''}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      dateFrom: event.target.value || undefined,
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                <span>To</span>
+                <input
+                  type="date"
+                  value={draftFilters.dateTo ?? ''}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      dateTo: event.target.value || undefined,
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                <span>Sort</span>
+                <select
+                  value={draftFilters.sort}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      sort: event.target.value as Filters['sort'],
+                    }))
+                  }
+                >
+                  <option value="date_desc">Newest first</option>
+                  <option value="date_asc">Oldest first</option>
+                  <option value="amount_desc">Highest amount</option>
+                  <option value="amount_asc">Lowest amount</option>
+                </select>
+              </label>
+              <div className="filter-actions">
                 <button
                   className="secondary-button"
-                  disabled={page <= 1 || isLoading}
-                  onClick={() => changePage(page - 1)}
+                  onClick={clearFilters}
                   type="button"
                 >
-                  Previous
+                  Clear
                 </button>
-                <button
-                  className="secondary-button"
-                  disabled={page >= result.pagination.totalPages || isLoading}
-                  onClick={() => changePage(page + 1)}
-                  type="button"
-                >
-                  Next
+                <button className="primary-button" type="submit">
+                  Apply filters
                 </button>
               </div>
-            </div>
-          </section>
+            </form>
 
-          <aside className="panel form-panel">
-            {options.accounts.length === 0 ? (
-              <div className="loading-state">
-                <span className="spinner" aria-hidden="true" />
-                Preparing transaction form…
-              </div>
-            ) : (
-              <TransactionForm
-                accounts={options.accounts}
-                categories={options.categories}
-                onSubmit={handleCreate}
-              />
-            )}
-          </aside>
-        </div>
+            <div className="content-grid">
+              <section className="panel transaction-panel">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Activity</p>
+                    <h2>Transaction history</h2>
+                  </div>
+                  <span className="record-count">
+                    {result.pagination.totalItems}{' '}
+                    {result.pagination.totalItems === 1 ? 'record' : 'records'}
+                  </span>
+                </div>
+                {isLoading ? (
+                  <div className="loading-state" aria-live="polite">
+                    <span className="spinner" aria-hidden="true" />
+                    Loading transactions…
+                  </div>
+                ) : (
+                  <TransactionList
+                    transactions={result.data}
+                    onView={setViewing}
+                    onEdit={setEditing}
+                    onDelete={(transaction) => {
+                      setDeleteError(null);
+                      setDeleting(transaction);
+                    }}
+                  />
+                )}
+                <div className="pagination" aria-label="Transaction pages">
+                  <label>
+                    Rows{' '}
+                    <select
+                      value={pageSize}
+                      onChange={(event) => {
+                        setIsLoading(true);
+                        setLoadError(null);
+                        setPageSize(Number(event.target.value));
+                        setPage(1);
+                      }}
+                    >
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                    </select>
+                  </label>
+                  <span>
+                    Page{' '}
+                    {result.pagination.totalPages === 0
+                      ? 0
+                      : result.pagination.page}{' '}
+                    of {result.pagination.totalPages}
+                  </span>
+                  <div>
+                    <button
+                      className="secondary-button"
+                      disabled={page <= 1 || isLoading}
+                      onClick={() => changePage(page - 1)}
+                      type="button"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      className="secondary-button"
+                      disabled={
+                        page >= result.pagination.totalPages || isLoading
+                      }
+                      onClick={() => changePage(page + 1)}
+                      type="button"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <aside className="panel form-panel">
+                {options.accounts.length === 0 ? (
+                  <div className="loading-state">
+                    <span className="spinner" aria-hidden="true" />
+                    Preparing transaction form…
+                  </div>
+                ) : (
+                  <TransactionForm
+                    accounts={options.accounts}
+                    categories={options.categories}
+                    onSubmit={handleCreate}
+                  />
+                )}
+              </aside>
+            </div>
+          </>
+        ) : null}
       </main>
 
       {viewing ? (
@@ -695,6 +751,16 @@ function App() {
         if (!controller.signal.aborted) setIsRestoringSession(false);
       });
     return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUser(null);
+      setSessionError('Your session expired. Sign in again to continue.');
+    };
+    window.addEventListener(sessionExpiredEvent, handleSessionExpired);
+    return () =>
+      window.removeEventListener(sessionExpiredEvent, handleSessionExpired);
   }, []);
 
   if (isRestoringSession) {

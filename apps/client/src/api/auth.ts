@@ -5,18 +5,16 @@ import {
   type RegisterInput,
 } from '@savent/contracts';
 
-import { apiBaseUrl, apiRequest } from './client';
+import { ApiError, apiRequest } from './client';
 
 export async function fetchCurrentUser(signal?: AbortSignal) {
-  const response = await fetch(`${apiBaseUrl}/auth/me`, {
-    credentials: 'include',
-    signal,
-  });
-
-  if (response.status === 401) return null;
-  const body: unknown = await response.json();
-  if (!response.ok) throw new Error('Savent could not restore your session.');
-  return authResponseSchema.parse(body).data.user;
+  try {
+    const body = await apiRequest('/auth/me', { signal });
+    return authResponseSchema.parse(body).data.user;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) return null;
+    throw error;
+  }
 }
 
 export async function register(input: RegisterInput) {

@@ -12,6 +12,7 @@ import {
   setCategoryArchived,
   updateCategory,
 } from '../api/categories';
+import { ConfirmDialog } from './ConfirmDialog';
 import { useNotifications } from './notification-context';
 
 type CategoriesProps = {
@@ -22,8 +23,8 @@ type CategoriesProps = {
 const icons: Array<{ value: CategoryIcon; label: string; symbol: string }> = [
   { value: 'tag', label: 'General', symbol: '◇' },
   { value: 'wallet', label: 'Money', symbol: '$' },
-  { value: 'shopping-cart', label: 'Shopping', symbol: '🛒' },
-  { value: 'utensils', label: 'Dining', symbol: '🍴' },
+  { value: 'shopping-cart', label: 'Shopping', symbol: '▣' },
+  { value: 'utensils', label: 'Dining', symbol: '◉' },
   { value: 'train', label: 'Transport', symbol: '↗' },
   { value: 'house', label: 'Home', symbol: '⌂' },
   { value: 'heart', label: 'Health', symbol: '♥' },
@@ -164,11 +165,16 @@ export function Categories({ reloadKey, onChanged }: CategoriesProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [localReloadKey, setLocalReloadKey] = useState(0);
+  const [pendingArchive, setPendingArchive] = useState<Category | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
     fetchCategories(includeArchived, controller.signal)
-      .then(setCategories)
+      .then((nextCategories) => {
+        setCategories(nextCategories);
+        setError(null);
+      })
       .catch((caught: unknown) => {
         if (!controller.signal.aborted)
           setError(
@@ -193,16 +199,11 @@ export function Categories({ reloadKey, onChanged }: CategoriesProps) {
   }
 
   async function toggleArchived(category: Category) {
-    if (
-      !category.isArchived &&
-      !window.confirm(
-        `Archive ${category.name}? Existing transactions and budgets will be preserved.`,
-      )
-    )
-      return;
+    setIsArchiving(true);
     setError(null);
     try {
       await setCategoryArchived(category.id, !category.isArchived);
+      setPendingArchive(null);
       changed(
         category.isArchived ? 'Category restored.' : 'Category archived.',
       );
@@ -212,6 +213,8 @@ export function Categories({ reloadKey, onChanged }: CategoriesProps) {
           ? caught.message
           : 'The category could not be updated.',
       );
+    } finally {
+      setIsArchiving(false);
     }
   }
 
@@ -220,7 +223,7 @@ export function Categories({ reloadKey, onChanged }: CategoriesProps) {
       <div className="section-heading">
         <div>
           <p className="eyebrow">Organise activity</p>
-          <h2>Categories</h2>
+          <h1>Categories</h1>
           <p>
             Personalise how income and spending appear without losing history.
           </p>
@@ -238,9 +241,21 @@ export function Categories({ reloadKey, onChanged }: CategoriesProps) {
         </label>
       </div>
       {error ? (
-        <p className="load-error" role="alert">
-          {error}
-        </p>
+        <div className="load-error" role="alert">
+          <strong>We couldn’t load your categories.</strong>
+          <span>{error}</span>
+          <button
+            className="secondary-button"
+            onClick={() => {
+              setError(null);
+              setIsLoading(true);
+              setLocalReloadKey((current) => current + 1);
+            }}
+            type="button"
+          >
+            Try again
+          </button>
+        </div>
       ) : null}
       <div className="categories-layout">
         <div className="category-manager-list" aria-live="polite">
@@ -248,6 +263,10 @@ export function Categories({ reloadKey, onChanged }: CategoriesProps) {
             <div className="loading-state">
               <span className="spinner" aria-hidden="true" />
               Loading categories…
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="compact-empty">
+              No categories match this view yet.
             </div>
           ) : (
             categories.map((category) => (
@@ -288,7 +307,10 @@ export function Categories({ reloadKey, onChanged }: CategoriesProps) {
                   ) : null}
                   <button
                     className="secondary-button"
-                    onClick={() => void toggleArchived(category)}
+                    onClick={() => {
+                      if (category.isArchived) void toggleArchived(category);
+                      else setPendingArchive(category);
+                    }}
                     type="button"
                   >
                     {category.isArchived ? 'Restore' : 'Archive'}
@@ -307,6 +329,16 @@ export function Categories({ reloadKey, onChanged }: CategoriesProps) {
           />
         </aside>
       </div>
+      {pendingArchive ? (
+        <ConfirmDialog
+          body="Existing transactions and budgets will be preserved, and you can restore this category later."
+          confirmLabel="Archive category"
+          isBusy={isArchiving}
+          onCancel={() => setPendingArchive(null)}
+          onConfirm={() => void toggleArchived(pendingArchive)}
+          title={`Archive ${pendingArchive.name}?`}
+        />
+      ) : null}
     </section>
   );
 }

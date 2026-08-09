@@ -8,8 +8,11 @@ import {
 } from '@savent/contracts';
 
 import { CategoryKind, TransactionType } from '../../generated/prisma/enums.js';
+import { Prisma } from '../../generated/prisma/client.js';
 import { AppError } from '../../errors/app-error.js';
 import { prisma } from '../../lib/prisma.js';
+
+const zero = () => new Prisma.Decimal(0);
 
 function currentMonth() {
   return new Date().toISOString().slice(0, 7);
@@ -27,7 +30,7 @@ function monthBounds(month: string) {
   return { start, end };
 }
 
-function money(value: number) {
+function money(value: Prisma.Decimal) {
   return value.toFixed(2);
 }
 
@@ -59,14 +62,14 @@ async function budgetProgress(userId: string, month: string) {
   const spentByCategory = new Map(
     expenses.map((expense) => [
       expense.categoryId,
-      Number(expense._sum.amount ?? 0),
+      expense._sum.amount ?? zero(),
     ]),
   );
 
   return budgets.map((budget) => {
-    const amount = Number(budget.amount);
-    const spent = spentByCategory.get(budget.categoryId) ?? 0;
-    const percentage = amount > 0 ? (spent / amount) * 100 : 0;
+    const amount = budget.amount;
+    const spent = spentByCategory.get(budget.categoryId) ?? zero();
+    const percentage = amount.gt(0) ? spent.div(amount).mul(100).toNumber() : 0;
     return {
       id: budget.id,
       category: {
@@ -78,7 +81,7 @@ async function budgetProgress(userId: string, month: string) {
       month,
       amount: money(amount),
       spent: money(spent),
-      remaining: money(amount - spent),
+      remaining: money(amount.sub(spent)),
       percentage: Math.round(percentage * 10) / 10,
       status: progressStatus(percentage),
     } satisfies BudgetProgress;
@@ -92,20 +95,32 @@ export async function getDashboard(userId: string, query: DashboardQuery) {
     Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - 5, 1),
   );
 
-  const [accounts, balanceTransactions, reportTransactions, budgets] =
+  const accounts = await prisma.account.findMany({
+    where: { userId, isArchived: false },
+    select: { id: true, openingBalance: true },
+  });
+  const activeAccountIds = accounts.map((account) => account.id);
+
+  const [sourceBalances, destinationBalances, reportTransactions, budgets] =
     await Promise.all([
-      prisma.account.findMany({
-        where: { userId, isArchived: false },
-        select: { id: true, openingBalance: true },
-      }),
-      prisma.transaction.findMany({
-        where: { userId, transactionDate: { lt: end } },
-        select: {
-          type: true,
-          amount: true,
-          accountId: true,
-          destinationAccountId: true,
+      prisma.transaction.groupBy({
+        by: ['accountId', 'type'],
+        where: {
+          userId,
+          accountId: { in: activeAccountIds },
+          transactionDate: { lt: end },
         },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.groupBy({
+        by: ['destinationAccountId'],
+        where: {
+          userId,
+          type: TransactionType.TRANSFER,
+          destinationAccountId: { in: activeAccountIds },
+          transactionDate: { lt: end },
+        },
+        _sum: { amount: true },
       }),
       prisma.transaction.findMany({
         where: {
@@ -124,25 +139,19 @@ export async function getDashboard(userId: string, query: DashboardQuery) {
     ]);
 
   const openingBalance = accounts.reduce(
-    (total, account) => total + Number(account.openingBalance),
-    0,
+    (total, account) => total.add(account.openingBalance),
+    zero(),
   );
-  const activeAccountIds = new Set(accounts.map((account) => account.id));
-  const balance = balanceTransactions.reduce((total, transaction) => {
-    const amount = Number(transaction.amount);
-    let next = total;
-    if (activeAccountIds.has(transaction.accountId)) {
-      next += transaction.type === TransactionType.INCOME ? amount : -amount;
-    }
-    if (
-      transaction.type === TransactionType.TRANSFER &&
-      transaction.destinationAccountId &&
-      activeAccountIds.has(transaction.destinationAccountId)
-    ) {
-      next += amount;
-    }
-    return next;
+  const sourceBalance = sourceBalances.reduce((total, group) => {
+    const amount = group._sum.amount ?? zero();
+    return group.type === TransactionType.INCOME
+      ? total.add(amount)
+      : total.sub(amount);
   }, openingBalance);
+  const balance = destinationBalances.reduce(
+    (total, group) => total.add(group._sum.amount ?? zero()),
+    sourceBalance,
+  );
 
   const selectedTransactions = reportTransactions.filter(
     (transaction) =>
@@ -150,11 +159,11 @@ export async function getDashboard(userId: string, query: DashboardQuery) {
   );
   const income = selectedTransactions
     .filter((transaction) => transaction.type === TransactionType.INCOME)
-    .reduce((total, transaction) => total + Number(transaction.amount), 0);
+    .reduce((total, transaction) => total.add(transaction.amount), zero());
   const expenses = selectedTransactions
     .filter((transaction) => transaction.type === TransactionType.EXPENSE)
-    .reduce((total, transaction) => total + Number(transaction.amount), 0);
-  const savings = income - expenses;
+    .reduce((total, transaction) => total.add(transaction.amount), zero());
+  const savings = income.sub(expenses);
 
   const monthly = Array.from({ length: 6 }, (_, index) => {
     const date = new Date(
@@ -172,7 +181,7 @@ export async function getDashboard(userId: string, query: DashboardQuery) {
     const totalFor = (type: TransactionType) =>
       values
         .filter((transaction) => transaction.type === type)
-        .reduce((total, transaction) => total + Number(transaction.amount), 0);
+        .reduce((total, transaction) => total.add(transaction.amount), zero());
     return {
       month: key,
       label: new Intl.DateTimeFormat('en-AU', {
@@ -186,7 +195,12 @@ export async function getDashboard(userId: string, query: DashboardQuery) {
 
   const categoryMap = new Map<
     string,
-    { categoryId: string | null; name: string; color: string; amount: number }
+    {
+      categoryId: string | null;
+      name: string;
+      color: string;
+      amount: Prisma.Decimal;
+    }
   >();
   selectedTransactions
     .filter((transaction) => transaction.type === TransactionType.EXPENSE)
@@ -196,27 +210,28 @@ export async function getDashboard(userId: string, query: DashboardQuery) {
         categoryId: transaction.categoryId,
         name: transaction.category?.name ?? 'Uncategorised',
         color: transaction.category?.color ?? '#94A3B8',
-        amount: 0,
+        amount: zero(),
       };
-      current.amount += Number(transaction.amount);
+      current.amount = current.amount.add(transaction.amount);
       categoryMap.set(key, current);
     });
   const categories = [...categoryMap.values()]
-    .sort((left, right) => right.amount - left.amount)
+    .sort((left, right) => right.amount.comparedTo(left.amount))
     .map((category) => ({
       ...category,
       amount: money(category.amount),
-      percentage:
-        expenses > 0 ? Math.round((category.amount / expenses) * 1000) / 10 : 0,
+      percentage: expenses.gt(0)
+        ? Math.round(category.amount.div(expenses).mul(1000).toNumber()) / 10
+        : 0,
     }));
 
   const allocated = budgets.reduce(
-    (total, budget) => total + Number(budget.amount),
-    0,
+    (total, budget) => total.add(budget.amount),
+    zero(),
   );
   const budgetSpent = budgets.reduce(
-    (total, budget) => total + Number(budget.spent),
-    0,
+    (total, budget) => total.add(budget.spent),
+    zero(),
   );
 
   return dashboardResponseSchema.parse({
@@ -227,14 +242,15 @@ export async function getDashboard(userId: string, query: DashboardQuery) {
         income: money(income),
         expenses: money(expenses),
         savings: money(savings),
-        savingsRate:
-          income > 0 ? Math.round((savings / income) * 1000) / 10 : 0,
+        savingsRate: income.gt(0)
+          ? Math.round(savings.div(income).mul(1000).toNumber()) / 10
+          : 0,
         transactionCount: selectedTransactions.length,
       },
       budgets: {
         allocated: money(allocated),
         spent: money(budgetSpent),
-        remaining: money(allocated - budgetSpent),
+        remaining: money(allocated.sub(budgetSpent)),
         items: budgets,
       },
       report: { monthly, categories },
